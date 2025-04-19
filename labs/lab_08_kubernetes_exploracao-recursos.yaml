@@ -1,0 +1,109 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kubernetes-exploracao-recursos-lab
+  namespace: girus
+  labels:
+    app: girus-lab-template
+data:
+  lab.yaml: |
+    name: kubernetes-exploracao-recursos
+    title: "Desafio: Explorando Recursos do Kubernetes com kubectl"
+    description: "Neste desafio, você demonstrará suas habilidades na utilização do kubectl para gerenciar e inspecionar recursos em um cluster Kubernetes."
+    duration: 15m
+    timerEnabled: true
+    maxDuration: 20m
+    image: "linuxtips/girus-kind-single-node:0.1" # Imagem com Kind/kubectl
+    tasks:
+      - name: "Desafio 1: Configurar um Ambiente de Trabalho"
+        description: "Configure um namespace isolado e crie os recursos iniciais necessários."
+        steps:
+          - "Crie um namespace chamado 'desafio-ns' e verifique que está ativo."
+          - "Crie um pod chamado 'nginx-pod' usando a imagem 'nginx:1.21-alpine' no namespace 'desafio-ns'."
+          - "Crie um ConfigMap chamado 'nginx-config' no namespace 'desafio-ns' com o par chave-valor: 'SERVER_TYPE=nginx'."
+        tips:
+          - type: "warning"
+            title: "Nomes dos Recursos"
+            content: "Utilize exatamente os nomes especificados para cada recurso. A validação verificará esses nomes específicos."
+        validation:
+          - command: "kubectl get namespace desafio-ns -o jsonpath='{.metadata.name}' 2>/dev/null || echo ''"
+            expectedOutput: "desafio-ns"
+            errorMessage: "O namespace 'desafio-ns' não foi criado corretamente."
+          - command: "kubectl get pod -n desafio-ns -o jsonpath='{.items[?(@.metadata.name==\"nginx-pod\")].spec.containers[0].image}' 2>/dev/null || echo ''"
+            expectedOutput: "nginx:1.21-alpine"
+            errorMessage: "Não foi encontrado o pod 'nginx-pod' com a imagem 'nginx:1.21-alpine' no namespace 'desafio-ns'."
+          - command: "kubectl get configmap -n desafio-ns nginx-config -o jsonpath='{.data.SERVER_TYPE}' 2>/dev/null || echo ''"
+            expectedOutput: "nginx"
+            errorMessage: "O ConfigMap 'nginx-config' não foi criado corretamente com a chave 'SERVER_TYPE'."
+
+      - name: "Desafio 2: Deployments e Serviços"
+        description: "Crie e inspecione deployments e serviços, demonstrando entendimento de como os recursos do Kubernetes se relacionam."
+        steps:
+          - "Crie um deployment chamado 'web-app' no namespace 'desafio-ns' com as seguintes características:"
+          - "- Imagem: httpd:2.4-alpine"
+          - "- Réplicas: 3"
+          - "- Label: app=web"
+          - "Crie um serviço do tipo ClusterIP chamado 'web-service' no namespace 'desafio-ns' que aponte para o deployment 'web-app' na porta 80."
+          - "Escale o deployment 'web-app' para 5 réplicas."
+          - "Obtenha o ClusterIP do serviço 'web-service' e verifique se todos os pods estão funcionando corretamente."
+        tips:
+          - type: "info"
+            title: "Verificando Seletores"
+            content: "Certifique-se de que o serviço utiliza o seletor correto para encontrar os pods do deployment. A correspondência é feita usando labels."
+        validation:
+          - command: "kubectl get deployment -n desafio-ns web-app -o jsonpath='{.spec.replicas}' 2>/dev/null || echo ''"
+            expectedOutput: "5"
+            errorMessage: "O deployment 'web-app' não foi criado corretamente ou não possui 5 réplicas."
+          - command: "kubectl get deployment -n desafio-ns web-app -o jsonpath='{.spec.template.spec.containers[0].image}' 2>/dev/null || echo ''"
+            expectedOutput: "httpd:2.4-alpine"
+            errorMessage: "O deployment 'web-app' não está usando a imagem 'httpd:2.4-alpine'."
+          - command: "kubectl get service -n desafio-ns web-service -o jsonpath='{.spec.type}' 2>/dev/null || echo ''"
+            expectedOutput: "ClusterIP"
+            errorMessage: "O serviço 'web-service' não foi criado ou não é do tipo ClusterIP."
+          - command: "kubectl get service -n desafio-ns web-service -o jsonpath='{.spec.ports[0].port}' 2>/dev/null || echo ''"
+            expectedOutput: "80"
+            errorMessage: "O serviço 'web-service' não está configurado para a porta 80."
+
+      - name: "Desafio 3: Diagnóstico e Solução de Problemas"
+        description: "Diagnostique e resolva problemas em um pod com falha, demonstrando habilidades de troubleshooting."
+        steps:
+          - "Crie um pod chamado 'problem-pod' no namespace 'desafio-ns' usando a imagem inexistente 'nginx:invalid-version'."
+          - "Aguarde alguns segundos e use 'kubectl describe' para identificar o problema com o pod."
+          - "Corrija o problema atualizando o pod para usar a imagem 'nginx:stable-alpine'."
+          - "Aguarde até que o pod esteja em estado 'Running'."
+        tips:
+          - type: "warning"
+            title: "Como Corrigir um Pod"
+            content: "Pods não podem ser atualizados diretamente. Você precisará excluir o pod com problema e criar um novo com a configuração correta."
+        validation:
+          - command: "kubectl get pod -n desafio-ns problem-pod -o jsonpath='{.status.phase}' 2>/dev/null || echo ''"
+            expectedOutput: "Running"
+            errorMessage: "O pod 'problem-pod' não está no estado 'Running'."
+          - command: "kubectl get pod -n desafio-ns problem-pod -o jsonpath='{.spec.containers[0].image}' 2>/dev/null || echo ''"
+            expectedOutput: "nginx:stable-alpine"
+            errorMessage: "O pod 'problem-pod' não está usando a imagem corrigida 'nginx:stable-alpine'."
+
+      - name: "Desafio 4: Limpeza Seletiva"
+        description: "Demonstre sua capacidade de remover recursos específicos sem afetar todo o ambiente."
+        steps:
+          - "Remova apenas o pod 'nginx-pod' do namespace 'desafio-ns'."
+          - "Remova o deployment 'web-app' e verifique que todos os seus pods foram removidos automaticamente."
+          - "Mantenha o pod 'problem-pod' e o serviço 'web-service' ativos."
+          - "Verifique e liste todos os recursos que ainda existem no namespace 'desafio-ns'."
+        tips:
+          - type: "info"
+            title: "Verificação Pós-Remoção"
+            content: "Use 'kubectl get all -n desafio-ns' para verificar quais recursos ainda existem no namespace."
+        validation:
+          - command: "kubectl get pod -n desafio-ns nginx-pod 2>&1 | grep -i 'not found' || echo 'Pod ainda existe'"
+            expectedOutput: "not found"
+            errorMessage: "O pod 'nginx-pod' não foi removido corretamente."
+          - command: "kubectl get deployment -n desafio-ns web-app 2>&1 | grep -i 'not found' || echo 'Deployment ainda existe'"
+            expectedOutput: "not found"
+            errorMessage: "O deployment 'web-app' não foi removido corretamente."
+          - command: "kubectl get pod -n desafio-ns problem-pod -o jsonpath='{.metadata.name}' 2>/dev/null || echo ''"
+            expectedOutput: "problem-pod"
+            errorMessage: "O pod 'problem-pod' foi removido, mas deveria continuar existindo."
+          - command: "kubectl get service -n desafio-ns web-service -o jsonpath='{.metadata.name}' 2>/dev/null || echo ''"
+            expectedOutput: "web-service"
+            errorMessage: "O serviço 'web-service' foi removido, mas deveria continuar existindo."

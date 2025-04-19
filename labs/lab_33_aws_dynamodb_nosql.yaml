@@ -1,0 +1,283 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: aws-dynamodb-nosql-lab
+  namespace: girus
+  labels:
+    app: girus-lab-template
+data:
+  lab.yaml: |
+    name: aws-dynamodb-nosql
+    title: "AWS DynamoDB: Banco de Dados NoSQL"
+    description: "Explore o Amazon DynamoDB, um serviço de banco de dados NoSQL totalmente gerenciado. Aprenda a criar tabelas, gerenciar itens, realizar consultas e configurar índices secundários."
+    duration: 25m
+    timerEnabled: true
+    maxDuration: 25m
+    image: "linuxtips/girus-localstack:0.1"
+    privileged: true
+    type: "aws"
+    entrypoint: "/entrypoint.sh"
+    tasks:
+      - name: "Criando e Configurando Tabelas DynamoDB"
+        description: "Aprenda a criar tabelas DynamoDB com chaves primárias simples e compostas"
+        steps:
+          - "Liste as tabelas existentes (inicialmente não deve haver nenhuma):"
+          - "`aws dynamodb list-tables`"
+          - "Crie uma tabela com chave primária simples:"
+          - |
+            aws dynamodb create-table \
+              --table-name Produtos \
+              --attribute-definitions \
+                  AttributeName=ProdutoId,AttributeType=S \
+              --key-schema \
+                  AttributeName=ProdutoId,KeyType=HASH \
+              --provisioned-throughput \
+                  ReadCapacityUnits=5,WriteCapacityUnits=5
+          - "Crie uma segunda tabela com chave primária composta (hash + sort):"
+          - |
+            aws dynamodb create-table \
+              --table-name Pedidos \
+              --attribute-definitions \
+                  AttributeName=ClienteId,AttributeType=S \
+                  AttributeName=PedidoId,AttributeType=S \
+              --key-schema \
+                  AttributeName=ClienteId,KeyType=HASH \
+                  AttributeName=PedidoId,KeyType=RANGE \
+              --provisioned-throughput \
+                  ReadCapacityUnits=5,WriteCapacityUnits=5
+          - "Liste as tabelas para confirmar que foram criadas:"
+          - "`aws dynamodb list-tables`"
+          - "Obtenha informações detalhadas sobre uma tabela:"
+          - "`aws dynamodb describe-table --table-name Produtos`"
+        tips:
+          - type: "info"
+            title: "Chaves primárias no DynamoDB"
+            content: "O DynamoDB suporta dois tipos de chaves primárias: Chave de partição (hash) simples, e Chave composta (hash + sort). Escolha com base no padrão de acesso aos seus dados."
+          - type: "tip"
+            title: "Capacidade provisionada vs sob demanda"
+            content: "Na AWS real, você pode escolher entre o modo de capacidade provisionada (como usamos aqui) ou o modo sob demanda, que é mais flexível mas pode ser mais caro."
+        validation:
+          - command: "aws dynamodb list-tables --query 'TableNames[*]' | grep -q Produtos && echo 'success' || echo 'error'"
+            expectedOutput: "success"
+            errorMessage: "A tabela Produtos não foi criada corretamente."
+          - command: "aws dynamodb list-tables --query 'TableNames[*]' | grep -q Pedidos && echo 'success' || echo 'error'"
+            expectedOutput: "success"
+            errorMessage: "A tabela Pedidos não foi criada corretamente."
+      
+      - name: "Inserindo e Consultando Itens"
+        description: "Aprenda a inserir, atualizar e consultar itens em tabelas DynamoDB"
+        steps:
+          - "Insira um item na tabela Produtos:"
+          - |
+            aws dynamodb put-item \
+              --table-name Produtos \
+              --item '{
+                "ProdutoId": {"S": "prod-001"},
+                "Nome": {"S": "Smartphone XYZ"},
+                "Preco": {"N": "899.99"},
+                "Categoria": {"S": "Eletrônicos"},
+                "Estoque": {"N": "50"}
+              }'
+          - "Insira outro item na tabela Produtos:"
+          - |
+            aws dynamodb put-item \
+              --table-name Produtos \
+              --item '{
+                "ProdutoId": {"S": "prod-002"},
+                "Nome": {"S": "Notebook ABC"},
+                "Preco": {"N": "2499.99"},
+                "Categoria": {"S": "Computadores"},
+                "Estoque": {"N": "15"}
+              }'
+          - "Insira um item na tabela Pedidos:"
+          - |
+            aws dynamodb put-item \
+              --table-name Pedidos \
+              --item '{
+                "ClienteId": {"S": "cliente-001"},
+                "PedidoId": {"S": "pedido-001"},
+                "Data": {"S": "2023-04-01"},
+                "Valor": {"N": "899.99"},
+                "Produtos": {"SS": ["prod-001"]}
+              }'
+          - "Obtenha um item específico da tabela Produtos:"
+          - |
+            aws dynamodb get-item \
+              --table-name Produtos \
+              --key '{"ProdutoId": {"S": "prod-001"}}'
+          - "Execute uma scan para ver todos os itens em uma tabela:"
+          - "`aws dynamodb scan --table-name Produtos`"
+          - "Execute uma query usando a chave primária (para a tabela Pedidos):"
+          - |
+            aws dynamodb query \
+              --table-name Pedidos \
+              --key-condition-expression "ClienteId = :clienteId" \
+              --expression-attribute-values '{":clienteId": {"S": "cliente-001"}}'
+        tips:
+          - type: "warning"
+            title: "Scan vs Query"
+            content: "Evite usar Scan em ambientes de produção com grandes conjuntos de dados, pois examina toda a tabela. Query é mais eficiente por usar índices."
+          - type: "info"
+            title: "Tipos de dados no DynamoDB"
+            content: "O DynamoDB suporta vários tipos: String (S), Number (N), Binary (B), Boolean (BOOL), Set (SS, NS, BS), Map (M), List (L) e Null."
+        validation:
+          - command: "aws dynamodb scan --table-name Produtos --query 'Items[*].ProdutoId.S' | grep -q prod-001 && echo 'success' || echo 'error'"
+            expectedOutput: "success"
+            errorMessage: "O item com ProdutoId 'prod-001' não foi inserido corretamente na tabela Produtos."
+          - command: "aws dynamodb scan --table-name Pedidos --query 'Items[*].ClienteId.S' | grep -q cliente-001 && echo 'success' || echo 'error'"
+            expectedOutput: "success"
+            errorMessage: "O item com ClienteId 'cliente-001' não foi inserido corretamente na tabela Pedidos."
+      
+      - name: "Atualizando e Excluindo Itens"
+        description: "Aprenda a atualizar e excluir itens em tabelas DynamoDB"
+        steps:
+          - "Atualize um item existente na tabela Produtos:"
+          - |
+            aws dynamodb update-item \
+              --table-name Produtos \
+              --key '{"ProdutoId": {"S": "prod-001"}}' \
+              --update-expression "SET Preco = :preco, Estoque = :estoque" \
+              --expression-attribute-values '{
+                ":preco": {"N": "849.99"},
+                ":estoque": {"N": "45"}
+              }' \
+              --return-values ALL_NEW
+          - "Verifique se a atualização foi bem-sucedida:"
+          - |
+            aws dynamodb get-item \
+              --table-name Produtos \
+              --key '{"ProdutoId": {"S": "prod-001"}}'
+          - "Adicione um novo atributo a um item existente:"
+          - |
+            aws dynamodb update-item \
+              --table-name Produtos \
+              --key '{"ProdutoId": {"S": "prod-002"}}' \
+              --update-expression "SET Promocao = :promocao" \
+              --expression-attribute-values '{
+                ":promocao": {"BOOL": true}
+              }' \
+              --return-values ALL_NEW
+          - "Exclua um atributo de um item:"
+          - |
+            aws dynamodb update-item \
+              --table-name Produtos \
+              --key '{"ProdutoId": {"S": "prod-001"}}' \
+              --update-expression "REMOVE Categoria" \
+              --return-values ALL_NEW
+          - "Exclua um item completo da tabela:"
+          - |
+            aws dynamodb delete-item \
+              --table-name Pedidos \
+              --key '{
+                "ClienteId": {"S": "cliente-001"},
+                "PedidoId": {"S": "pedido-001"}
+              }'
+          - "Verifique se o item foi excluído:"
+          - "`aws dynamodb scan --table-name Pedidos`"
+        tips:
+          - type: "info"
+            title: "Expressões de atualização"
+            content: "O DynamoDB usa expressões de atualização com operadores como SET, REMOVE, ADD e DELETE para modificar itens."
+          - type: "warning"
+            title: "Operações atômicas"
+            content: "O DynamoDB garante que as operações de atualização sejam atômicas. Use condições para garantir que atualizações só ocorram quando certas condições forem atendidas."
+        validation:
+          - command: "aws dynamodb get-item --table-name Produtos --key '{\"ProdutoId\": {\"S\": \"prod-001\"}}' --query 'Item.Preco.N' | grep -q 849.99 && echo 'success' || echo 'error'"
+            expectedOutput: "success"
+            errorMessage: "O preço do item não foi atualizado corretamente para 849.99."
+          - command: "aws dynamodb get-item --table-name Produtos --key '{\"ProdutoId\": {\"S\": \"prod-001\"}}' --query 'Item.Categoria' | grep -q null && echo 'success' || echo 'error'"
+            expectedOutput: "success"
+            errorMessage: "O atributo Categoria não foi removido corretamente do item."
+      
+      - name: "Índices Secundários e Consultas Avançadas"
+        description: "Configure índices secundários e realize consultas mais complexas"
+        steps:
+          - "Crie uma nova tabela com um índice secundário global (GSI):"
+          - |
+            aws dynamodb create-table \
+              --table-name Clientes \
+              --attribute-definitions \
+                  AttributeName=ClienteId,AttributeType=S \
+                  AttributeName=Email,AttributeType=S \
+                  AttributeName=Cidade,AttributeType=S \
+              --key-schema \
+                  AttributeName=ClienteId,KeyType=HASH \
+              --provisioned-throughput \
+                  ReadCapacityUnits=5,WriteCapacityUnits=5 \
+              --global-secondary-indexes '[
+                {
+                  "IndexName": "EmailIndex",
+                  "KeySchema": [
+                    {"AttributeName": "Email", "KeyType": "HASH"}
+                  ],
+                  "Projection": {"ProjectionType": "ALL"},
+                  "ProvisionedThroughput": {
+                    "ReadCapacityUnits": 5,
+                    "WriteCapacityUnits": 5
+                  }
+                },
+                {
+                  "IndexName": "CidadeIndex",
+                  "KeySchema": [
+                    {"AttributeName": "Cidade", "KeyType": "HASH"}
+                  ],
+                  "Projection": {"ProjectionType": "ALL"},
+                  "ProvisionedThroughput": {
+                    "ReadCapacityUnits": 5,
+                    "WriteCapacityUnits": 5
+                  }
+                }
+              ]'
+          - "Insira alguns itens para testar os índices:"
+          - |
+            aws dynamodb put-item \
+              --table-name Clientes \
+              --item '{
+                "ClienteId": {"S": "cliente-001"},
+                "Nome": {"S": "João Silva"},
+                "Email": {"S": "joao@exemplo.com"},
+                "Cidade": {"S": "São Paulo"}
+              }'
+          - |
+            aws dynamodb put-item \
+              --table-name Clientes \
+              --item '{
+                "ClienteId": {"S": "cliente-002"},
+                "Nome": {"S": "Maria Souza"},
+                "Email": {"S": "maria@exemplo.com"},
+                "Cidade": {"S": "Rio de Janeiro"}
+              }'
+          - |
+            aws dynamodb put-item \
+              --table-name Clientes \
+              --item '{
+                "ClienteId": {"S": "cliente-003"},
+                "Nome": {"S": "Carlos Santos"},
+                "Email": {"S": "carlos@exemplo.com"},
+                "Cidade": {"S": "São Paulo"}
+              }'
+          - "Consulte usando o índice secundário por email:"
+          - |
+            aws dynamodb query \
+              --table-name Clientes \
+              --index-name EmailIndex \
+              --key-condition-expression "Email = :email" \
+              --expression-attribute-values '{":email": {"S": "maria@exemplo.com"}}'
+          - "Consulte usando o índice secundário por cidade (para encontrar todos os clientes de São Paulo):"
+          - |
+            aws dynamodb query \
+              --table-name Clientes \
+              --index-name CidadeIndex \
+              --key-condition-expression "Cidade = :cidade" \
+              --expression-attribute-values '{":cidade": {"S": "São Paulo"}}'
+        tips:
+          - type: "info"
+            title: "Tipos de índices secundários"
+            content: "O DynamoDB oferece dois tipos de índices secundários: Global (GSI) que podem ter uma chave primária diferente da tabela base, e Local (LSI) que devem ter a mesma chave de partição da tabela base."
+          - type: "tip"
+            title: "Projeções em índices"
+            content: "Projete apenas os atributos necessários em seus índices para economizar espaço e reduzir custos."
+        validation:
+          - command: "aws dynamodb query --table-name Clientes --index-name CidadeIndex --key-condition-expression \"Cidade = :cidade\" --expression-attribute-values '{\":cidade\": {\"S\": \"São Paulo\"}}' --query 'Items[*].ClienteId.S' | grep -c cliente | grep -q [2-9] && echo 'success' || echo 'error'"
+            expectedOutput: "success"
+            errorMessage: "A consulta no índice CidadeIndex não retornou o número esperado de clientes de São Paulo." 

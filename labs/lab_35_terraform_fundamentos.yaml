@@ -1,0 +1,440 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: terraform-fundamentos-lab
+  namespace: girus
+  labels:
+    app: girus-lab-template
+data:
+  lab.yaml: |
+    name: terraform-fundamentos
+    title: "Terraform: Fundamentos de Infraestrutura como Código"
+    description: "Aprenda os princípios fundamentais do Terraform, a ferramenta de infraestrutura como código (IaC) da HashiCorp. Entenda conceitos como providers, recursos, variáveis e o ciclo de vida do Terraform."
+    duration: 25m
+    image: "linuxtips/girus-localstack:0.1"
+    privileged: true
+    type: "aws"
+    entrypoint: "/entrypoint.sh"
+    tasks:
+      - name: "Instalando o Vim"
+        description: "Atualize os repositórios do sistema e instale o editor Vim"
+        steps:
+          - "Atualize os repositórios do sistema:"
+          - "`apt update`"
+          - "Instale o editor Vim:"
+          - "`apt install -y vim`"
+          - "Verifique se o Vim foi instalado corretamente:"
+          - "`vim --version | head -n 1`"
+        tips:
+          - type: "info"
+            title: "Comandos básicos do Vim"
+            content: "Para abrir um arquivo use 'vim arquivo.tf'. Para inserir texto, pressione 'i'. Para salvar e sair, pressione 'ESC' e digite ':wq'. Para sair sem salvar, pressione 'ESC' e digite ':q!'."
+        validation:
+          - command: "which vim > /dev/null && echo 'success' || echo 'error'"
+            expectedOutput: "success"
+            errorMessage: "O Vim não foi instalado corretamente. Tente executar 'apt install -y vim' novamente."
+
+      - name: "Primeiros passos com Terraform"
+        description: "Configure seu primeiro projeto Terraform e entenda a estrutura básica dos arquivos"
+        steps:
+          - "Crie um diretório para o projeto:"
+          - "`mkdir -p ~/terraform-projeto && cd ~/terraform-projeto`"
+          - "Crie um arquivo principal do Terraform usando vim:"
+          - "`vim main.tf`"
+          - "No editor vim, pressione 'i' para entrar no modo de inserção e adicione o seguinte conteúdo:"
+          - "```hcl
+            terraform {
+              required_providers {
+                aws = {
+                  source  = \"hashicorp/aws\"
+                  version = \"~> 5.0\"
+                }
+              }
+            }
+
+            # Configuração do provider AWS
+            provider \"aws\" {
+              region = \"us-east-1\"
+            }
+
+            # Recurso de bucket S3 simples
+            resource \"aws_s3_bucket\" \"primeiro_bucket\" {
+              bucket = \"meu-primeiro-bucket-terraform\"
+
+              tags = {
+                Name        = \"Meu primeiro bucket\"
+                Environment = \"Dev\"
+              }
+            }
+            ```"
+          - "Para salvar o arquivo e sair do vim, pressione 'ESC' e digite ':wq'"
+          - "Inicialize o Terraform para baixar os providers necessários:"
+          - "`terraform init`"
+          - "Verifique o plano de execução que o Terraform irá aplicar:"
+          - "`terraform plan`"
+          - "Aplique a configuração para criar a infraestrutura:"
+          - "`terraform apply -auto-approve`"
+          - "Verifique se o bucket foi criado:"
+          - "`aws s3 ls | grep meu-primeiro-bucket-terraform`"
+        tips:
+          - type: "info"
+            title: "Arquivo main.tf"
+            content: "O arquivo main.tf é o ponto de entrada principal para configurações Terraform. Ele normalmente contém a definição dos providers e recursos principais."
+          - type: "tip"
+            title: "Ciclo de vida Terraform"
+            content: "O fluxo típico do Terraform segue: init (inicializa o projeto) → plan (mostra alterações) → apply (aplica alterações) → destroy (quando necessário remover a infraestrutura)."
+        validation:
+          - command: "terraform state list | grep aws_s3_bucket.primeiro_bucket && echo 'success' || echo 'error'"
+            expectedOutput: "success"
+            errorMessage: "O recurso aws_s3_bucket.primeiro_bucket não foi criado corretamente."
+
+      - name: "Trabalhando com variáveis e outputs"
+        description: "Aprenda a usar variáveis e outputs para tornar seu código Terraform mais flexível"
+        steps:
+          - "Crie um arquivo de variáveis usando vim:"
+          - "`vim variables.tf`"
+          - "No editor vim, pressione 'i' para entrar no modo de inserção e adicione o seguinte conteúdo:"
+          - "```hcl
+            variable \"bucket_name\" {
+              description = \"Nome do bucket S3\"
+              type        = string
+              default     = \"meu-segundo-bucket-terraform\"
+            }
+
+            variable \"environment\" {
+              description = \"Ambiente de execução\"
+              type        = string
+              default     = \"dev\"
+            }
+
+            variable \"tags\" {
+              description = \"Tags para recursos\"
+              type        = map(string)
+              default     = {
+                Project     = \"Terraform Learning\"
+                ManagedBy   = \"Terraform\"
+              }
+            }
+            ```"
+          - "Para salvar o arquivo e sair do vim, pressione 'ESC' e digite ':wq'"
+          - "Crie um arquivo para outputs usando vim:"
+          - "`vim outputs.tf`"
+          - "No editor vim, pressione 'i' para entrar no modo de inserção e adicione o seguinte conteúdo:"
+          - "```hcl
+            output \"bucket_name\" {
+              description = \"Nome do bucket criado\"
+              value       = aws_s3_bucket.segundo_bucket.bucket
+            }
+
+            output \"bucket_arn\" {
+              description = \"ARN do bucket criado\"
+              value       = aws_s3_bucket.segundo_bucket.arn
+            }
+            ```"
+          - "Para salvar o arquivo e sair do vim, pressione 'ESC' e digite ':wq'"
+          - "Modifique o arquivo main.tf para usar variáveis:"
+          - "`vim main.tf`"
+          - "No editor vim, pressione 'i' para entrar no modo de inserção e substitua o conteúdo pelo seguinte:"
+          - "```hcl
+            terraform {
+              required_providers {
+                aws = {
+                  source  = \"hashicorp/aws\"
+                  version = \"~> 5.0\"
+                }
+              }
+            }
+
+            provider \"aws\" {
+              region = \"us-east-1\"
+            }
+
+            # Manter bucket anterior
+            resource \"aws_s3_bucket\" \"primeiro_bucket\" {
+              bucket = \"meu-primeiro-bucket-terraform\"
+
+              tags = {
+                Name        = \"Meu primeiro bucket\"
+                Environment = \"Dev\"
+              }
+            }
+
+            # Novo bucket utilizando variáveis
+            resource \"aws_s3_bucket\" \"segundo_bucket\" {
+              bucket = var.bucket_name
+
+              tags = merge(
+                var.tags,
+                {
+                  Name        = \"Bucket com variáveis\"
+                  Environment = var.environment
+                }
+              )
+            }
+            ```"
+          - "Para salvar o arquivo e sair do vim, pressione 'ESC' e digite ':wq'"
+          - "Aplique a configuração atualizada:"
+          - "`terraform apply -auto-approve`"
+          - "Visualize os outputs após a aplicação:"
+          - "`terraform output`"
+          - "Teste a aplicação com diferentes valores de variáveis:"
+          - "`terraform apply -var=\"environment=staging\" -var=\"bucket_name=staging-bucket-terraform\" -auto-approve`"
+          - "Verifique se o bucket com novo nome foi criado:"
+          - "`aws s3 ls | grep staging-bucket-terraform`"
+        tips:
+          - type: "info"
+            title: "Separando arquivos"
+            content: "É uma boa prática separar o código Terraform em arquivos diferentes: main.tf para recursos principais, variables.tf para declaração de variáveis, outputs.tf para outputs, etc."
+          - type: "warning"
+            title: "Valores sensíveis"
+            content: "Nunca armazene dados sensíveis (senhas, chaves) diretamente no código. Use variáveis de ambiente, arquivos tfvars ou cofres de segurança como o Vault."
+        validation:
+          - command: "terraform state list | grep aws_s3_bucket.segundo_bucket && echo 'success' || echo 'error'"
+            expectedOutput: "success"
+            errorMessage: "O recurso aws_s3_bucket.segundo_bucket não foi criado corretamente."
+          - command: "aws s3 ls | grep staging-bucket-terraform && echo 'success' || echo 'error'"
+            expectedOutput: "success"
+            errorMessage: "O bucket staging-bucket-terraform não foi encontrado. A variável não foi aplicada corretamente."
+
+      - name: "Modularização no Terraform"
+        description: "Aprenda a organizar seu código Terraform em módulos reutilizáveis"
+        steps:
+          - "Crie uma estrutura de diretórios para módulos:"
+          - "`mkdir -p ~/terraform-modulos/modules/s3`"
+          - "Crie o arquivo main.tf do módulo S3 usando vim:"
+          - "`vim ~/terraform-modulos/modules/s3/main.tf`"
+          - "No editor vim, pressione 'i' para entrar no modo de inserção e adicione o seguinte conteúdo:"
+          - "```hcl
+            # Módulo para criação de buckets S3
+
+            resource \"aws_s3_bucket\" \"this\" {
+              bucket = var.bucket_name
+
+              tags = merge(
+                var.tags,
+                {
+                  Name        = var.bucket_display_name
+                  Environment = var.environment
+                }
+              )
+            }
+
+            # Opcional: adicionar regra de ciclo de vida
+            resource \"aws_s3_bucket_lifecycle_configuration\" \"this\" {
+              count = var.enable_lifecycle_rule ? 1 : 0
+
+              bucket = aws_s3_bucket.this.id
+
+              rule {
+                id     = \"expire-old-files\"
+                status = \"Enabled\"
+
+                expiration {
+                  days = var.lifecycle_expiration_days
+                }
+              }
+            }
+            ```"
+          - "Para salvar o arquivo e sair do vim, pressione 'ESC' e digite ':wq'"
+          - "Crie o arquivo variables.tf do módulo usando vim:"
+          - "`vim ~/terraform-modulos/modules/s3/variables.tf`"
+          - "No editor vim, pressione 'i' para entrar no modo de inserção e adicione o seguinte conteúdo:"
+          - "```hcl
+            variable \"bucket_name\" {
+              description = \"Nome do bucket S3\"
+              type        = string
+            }
+
+            variable \"bucket_display_name\" {
+              description = \"Nome de exibição do bucket\"
+              type        = string
+              default     = \"Bucket S3\"
+            }
+
+            variable \"environment\" {
+              description = \"Ambiente de execução\"
+              type        = string
+              default     = \"dev\"
+            }
+
+            variable \"tags\" {
+              description = \"Tags para recursos\"
+              type        = map(string)
+              default     = {}
+            }
+
+            variable \"enable_lifecycle_rule\" {
+              description = \"Habilitar regra de ciclo de vida\"
+              type        = bool
+              default     = false
+            }
+
+            variable \"lifecycle_expiration_days\" {
+              description = \"Número de dias para expiração de objetos\"
+              type        = number
+              default     = 90
+            }
+            ```"
+          - "Para salvar o arquivo e sair do vim, pressione 'ESC' e digite ':wq'"
+          - "Crie o arquivo outputs.tf do módulo usando vim:"
+          - "`vim ~/terraform-modulos/modules/s3/outputs.tf`"
+          - "No editor vim, pressione 'i' para entrar no modo de inserção e adicione o seguinte conteúdo:"
+          - "```hcl
+            output \"bucket_name\" {
+              description = \"Nome do bucket criado\"
+              value       = aws_s3_bucket.this.bucket
+            }
+
+            output \"bucket_arn\" {
+              description = \"ARN do bucket criado\"
+              value       = aws_s3_bucket.this.arn
+            }
+
+            output \"bucket_region\" {
+              description = \"Região do bucket\"
+              value       = aws_s3_bucket.this.region
+            }
+            ```"
+          - "Para salvar o arquivo e sair do vim, pressione 'ESC' e digite ':wq'"
+          - "Agora, crie o arquivo principal que usará o módulo usando vim:"
+          - "`vim ~/terraform-modulos/main.tf`"
+          - "No editor vim, pressione 'i' para entrar no modo de inserção e adicione o seguinte conteúdo:"
+          - "```hcl
+            terraform {
+              required_providers {
+                aws = {
+                  source  = \"hashicorp/aws\"
+                  version = \"~> 5.0\"
+                }
+              }
+            }
+
+            provider \"aws\" {
+              region = \"us-east-1\"
+            }
+
+            # Usar o módulo S3 para criar múltiplos buckets
+            module \"logs_bucket\" {
+              source = \"./modules/s3\"
+
+              bucket_name        = \"terraform-logs-bucket\"
+              bucket_display_name = \"Bucket de Logs\"
+              environment         = \"prod\"
+              enable_lifecycle_rule = true
+              lifecycle_expiration_days = 30
+              
+              tags = {
+                Type    = \"Logs\"
+                Project = \"Terraform Modules Demo\"
+              }
+            }
+
+            module \"data_bucket\" {
+              source = \"./modules/s3\"
+
+              bucket_name        = \"terraform-data-bucket\"
+              bucket_display_name = \"Bucket de Dados\"
+              environment         = \"prod\"
+              
+              tags = {
+                Type    = \"Data\"
+                Project = \"Terraform Modules Demo\"
+              }
+            }
+            ```"
+          - "Para salvar o arquivo e sair do vim, pressione 'ESC' e digite ':wq'"
+          - "Crie o arquivo outputs.tf para o projeto principal usando vim:"
+          - "`vim ~/terraform-modulos/outputs.tf`"
+          - "No editor vim, pressione 'i' para entrar no modo de inserção e adicione o seguinte conteúdo:"
+          - "```hcl
+            output \"logs_bucket_name\" {
+              description = \"Nome do bucket de logs\"
+              value       = module.logs_bucket.bucket_name
+            }
+
+            output \"data_bucket_name\" {
+              description = \"Nome do bucket de dados\"
+              value       = module.data_bucket.bucket_name
+            }
+            ```"
+          - "Para salvar o arquivo e sair do vim, pressione 'ESC' e digite ':wq'"
+          - "Mude para o diretório dos módulos e inicialize o Terraform:"
+          - "`cd ~/terraform-modulos && terraform init`"
+          - "Verifique o plano de execução:"
+          - "`terraform plan`"
+          - "Aplique a configuração para criar os buckets através dos módulos:"
+          - "`terraform apply -auto-approve`"
+          - "Verifique os buckets criados pelo módulo:"
+          - "`aws s3 ls | grep terraform`"
+        tips:
+          - type: "info"
+            title: "Módulos Terraform"
+            content: "Módulos são contêineres para múltiplos recursos que são usados juntos. Eles ajudam a organizar e reutilizar código, seguindo o princípio DRY (Don't Repeat Yourself)."
+          - type: "tip"
+            title: "Módulos da comunidade"
+            content: "O Terraform Registry contém centenas de módulos públicos prontos para uso. Considere usar módulos já existentes antes de criar o seu próprio."
+        validation:
+          - command: "terraform state list | grep module.logs_bucket && terraform state list | grep module.data_bucket && echo 'success' || echo 'error'"
+            expectedOutput: "success"
+            errorMessage: "Os módulos não foram aplicados corretamente."
+          - command: "aws s3 ls | grep terraform-logs-bucket && aws s3 ls | grep terraform-data-bucket && echo 'success' || echo 'error'"
+            expectedOutput: "success"
+            errorMessage: "Os buckets não foram criados pelos módulos."
+
+      - name: "Estado e workspaces"
+        description: "Aprenda a gerenciar o estado do Terraform e a usar workspaces para ambientes diferentes"
+        steps:
+          - "Volte para o diretório do primeiro projeto:"
+          - "`cd ~/terraform-projeto`"
+          - "Veja o arquivo de estado atual:"
+          - "`terraform state list`"
+          - "Visualize detalhes de um recurso específico:"
+          - "`terraform state show aws_s3_bucket.primeiro_bucket`"
+          - "Crie um arquivo de configuração para múltiplos ambientes usando vim:"
+          - "`vim workspace.tf`"
+          - "No editor vim, pressione 'i' para entrar no modo de inserção e adicione o seguinte conteúdo:"
+          - "```hcl
+            # Configuração para demonstrar workspaces
+
+            resource \"aws_s3_bucket\" \"workspace_bucket\" {
+              bucket = \"terraform-workspace-${terraform.workspace}\"
+
+              tags = {
+                Name        = \"Bucket do workspace ${terraform.workspace}\"
+                Environment = terraform.workspace
+              }
+            }
+            ```"
+          - "Para salvar o arquivo e sair do vim, pressione 'ESC' e digite ':wq'"
+          - "Liste os workspaces atuais (por padrão, apenas 'default'):"
+          - "`terraform workspace list`"
+          - "Crie um novo workspace chamado 'staging':"
+          - "`terraform workspace new staging`"
+          - "Observe que o Terraform alternou para o workspace staging:"
+          - "`terraform workspace show`"
+          - "Aplique a configuração no workspace staging:"
+          - "`terraform apply -auto-approve`"
+          - "Crie outro workspace chamado 'production':"
+          - "`terraform workspace new production`"
+          - "Aplique a configuração no workspace production:"
+          - "`terraform apply -auto-approve`"
+          - "Liste todos os workspaces:"
+          - "`terraform workspace list`"
+          - "Verifique todos os buckets criados nos diferentes workspaces:"
+          - "`aws s3 ls | grep terraform-workspace`"
+          - "Alterne de volta para o workspace default:"
+          - "`terraform workspace select default`"
+        tips:
+          - type: "info"
+            title: "Estado Terraform"
+            content: "O arquivo de estado (terraform.tfstate) armazena o estado atual da infraestrutura gerenciada pelo Terraform. Para ambientes de produção, é recomendado usar backends remotos como S3 + DynamoDB."
+          - type: "warning"
+            title: "Workspaces"
+            content: "Workspaces são úteis para variações simples entre ambientes, mas para configurações complexas, considere usar estruturas de diretórios separadas para cada ambiente."
+        validation:
+          - command: "terraform workspace list | grep -q production && echo 'success' || echo 'error'"
+            expectedOutput: "success"
+            errorMessage: "O workspace 'production' não foi criado corretamente."
+          - command: "aws s3 ls | grep -q terraform-workspace-staging && aws s3 ls | grep -q terraform-workspace-production && echo 'success' || echo 'error'"
+            expectedOutput: "success"
+            errorMessage: "Os buckets dos workspaces não foram criados corretamente."

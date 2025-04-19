@@ -1,0 +1,74 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: linux-monitoramento-sistema-lab
+  namespace: girus
+  labels:
+    app: girus-lab-template
+data:
+  lab.yaml: |
+    name: linux-monitoramento-sistema
+    title: "Monitoramento Básico do Sistema Linux"
+    description: "Utilize ferramentas como vmstat, iostat, free e explore o /proc para obter informações sobre o desempenho do sistema."
+    duration: 20m
+    image: "linuxtips/girus-devops:0.1"
+    tasks:
+      - name: "Verificando Uso de Memória (free, vmstat)"
+        description: "Analise o consumo de memória RAM e Swap."
+        steps:
+          - "Visualize o uso de memória de forma legível:"
+          - "`free -h`"
+          - "Entenda as colunas: total, used, free, shared, buff/cache, available."
+          - "Use vmstat para ver estatísticas de memória virtual (e outras) a cada 1 segundo, 2 vezes:"
+          - "`vmstat 1 2`"
+          - "Observe as colunas 'si' (swap in) e 'so' (swap out). Valores altos indicam uso excessivo de swap."
+        tips:
+          - type: "info"
+            title: "Memória 'Available' vs 'Free'"
+            content: "No Linux moderno, 'available' é uma estimativa mais realista da memória disponível para novas aplicações, pois considera a memória usada para cache que pode ser liberada."
+          - type: "tip"
+            title: "vmstat"
+            content: "'vmstat' (Virtual Memory Statistics) fornece um resumo rápido de processos, memória, swap, I/O, sistema e CPU."
+        validation:
+          - command: "free -h | grep 'Mem:' &> /dev/null && echo 'ok'"
+            expectedOutput: "ok"
+            errorMessage: "O comando 'free -h' não produziu a saída esperada contendo 'Mem:'."
+
+      - name: "Analisando Atividade de Disco (iostat)"
+        description: "Verifique a utilização e o desempenho dos dispositivos de bloco (discos)."
+        steps:
+          - "Instale o pacote sysstat se necessário (pode já estar na imagem):"
+          - "`sudo apt-get update && sudo apt-get install -y sysstat || echo 'sysstat já instalado'`"
+          - "Visualize estatísticas de I/O para todos os dispositivos (-x), a cada 1 segundo, 2 vezes:"
+          - "`iostat -x 1 2`"
+          - "Observe colunas importantes como: %util (percentual de tempo que o disco esteve ocupado), await (tempo médio de espera por I/O), r/s (leituras por segundo), w/s (escritas por segundo)."
+        tips:
+          - type: "warning"
+            title: "%util Alto"
+            content: "Um %util consistentemente perto de 100% indica que o disco pode ser um gargalo de desempenho."
+        validation:
+          - command: "iostat -x 1 2 | grep 'Device' &> /dev/null && echo 'ok'"
+            expectedOutput: "ok"
+            errorMessage: "O comando 'iostat -x' não produziu a saída esperada contendo 'Device'."
+
+      - name: "Explorando o Sistema de Arquivos /proc"
+        description: "Navegue pelo /proc para obter informações detalhadas sobre o kernel e os processos."
+        steps:
+          - "/proc é um sistema de arquivos virtual que reflete o estado do kernel."
+          - "Visualize informações sobre a CPU:"
+          - "`cat /proc/cpuinfo`"
+          - "Visualize informações sobre a memória:"
+          - "`cat /proc/meminfo`"
+          - "Visualize informações sobre as partições montadas:"
+          - "`cat /proc/mounts`"
+          - "Visualize informações sobre o processo atual (PID $$):"
+          - "`ls -l /proc/$$/`"
+          - "`cat /proc/$$/status`"
+        tips:
+          - type: "info"
+            title: "/proc e Ferramentas"
+            content: "Muitas ferramentas de monitoramento (como ps, top, free) obtêm suas informações lendo arquivos dentro do /proc."
+        validation:
+          - command: "grep 'model name' /proc/cpuinfo &> /dev/null && echo 'ok'"
+            expectedOutput: "ok"
+            errorMessage: "Não foi possível ler informações da CPU em /proc/cpuinfo."

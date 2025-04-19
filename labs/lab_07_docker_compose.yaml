@@ -1,0 +1,170 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: docker-compose-lab
+  namespace: girus
+  labels:
+    app: girus-lab-template
+data:
+  lab.yaml: |
+    name: docker-compose
+    title: "Introdução ao Docker Compose"
+    description: "Aprenda a definir e executar aplicações multi-container Docker de forma declarativa com Docker Compose. Este laboratório guiado explora os princípios fundamentais de orquestração de containers para aplicações compostas por múltiplos serviços."
+    duration: 25m
+    image: "linuxtips/girus-devops:0.1"
+    privileged: true # Acesso ao Docker daemon
+    tasks:
+      - name: "Criando um Arquivo docker-compose.yaml"
+        description: "Defina os serviços, redes e volumes da sua aplicação em um arquivo YAML e entenda como o Docker Compose interpreta esta configuração para criar um ambiente multi-container."
+        steps:
+          - "**O Docker Compose** é uma ferramenta para definir e executar aplicações Docker multi-container. Ele utiliza um arquivo YAML para configurar os serviços da aplicação e permite criar e iniciar todos os serviços com um único comando."
+          - "Quando trabalhamos com aplicações reais, geralmente precisamos de vários containers que trabalham juntos (por exemplo, um container para o frontend, outro para o backend e um terceiro para o banco de dados). O Docker Compose facilita essa orquestração."
+          - "Vamos começar criando um arquivo chamado 'docker-compose.yaml' que define nossa aplicação multi-container:"
+          - |
+            ```
+            version: '3.8' # Especifica a versão da sintaxe do Compose
+
+            services:
+              webapp:
+                image: nginx:alpine
+                ports:
+                  - "8080:80" # Mapeia porta 8080 do host para 80 do container
+                volumes:
+                  - ./html:/usr/share/nginx/html:ro # Monta diretório local como read-only
+                networks:
+                  - app-net
+
+              redis:
+                image: redis:alpine
+                networks:
+                  - app-net
+
+            networks:
+              app-net: # Define uma rede customizada
+                driver: bridge
+
+            volumes: {} # Seção de volumes (vazia neste exemplo)
+            ```
+          - "Vamos entender os principais componentes deste arquivo:"
+          - "- **version**: Especifica a versão da sintaxe do Docker Compose que estamos usando. A versão '3.8' suporta recursos mais recentes."
+          - "- **services**: Define os containers que farão parte da aplicação. Cada serviço se tornará um container Docker."
+          - "  - **webapp**: Um serviço usando a imagem Nginx (servidor web) com a porta 8080 do host mapeada para a porta 80 do container."
+          - "  - **redis**: Um serviço usando a imagem Redis (banco de dados em memória)."
+          - "- **networks**: Define as redes que os containers usarão para se comunicar."
+          - "- **volumes**: Define os volumes que serão usados pelos containers para persistência de dados."
+          - "Agora, precisamos criar o conteúdo que será servido pelo Nginx. Vamos criar um diretório 'html' e um arquivo 'index.html' dentro dele:"
+          - "`mkdir html`"
+          - "Este comando cria um diretório 'html' no diretório atual. Este diretório será montado dentro do container Nginx."
+          - "`echo '<h1>Bem-vindo ao Docker Compose!</h1>' > html/index.html`"
+          - "Este comando cria um arquivo 'index.html' com um conteúdo HTML básico. O Nginx servirá este arquivo quando acessarmos a aplicação."
+          - "Antes de executarmos a aplicação, é uma boa prática verificar se o arquivo docker-compose.yaml está sintaticamente correto:"
+          - "`docker-compose config`"
+          - "Este comando valida o arquivo docker-compose.yaml e exibe a configuração resultante. Se houver erros de sintaxe, eles serão exibidos aqui."
+        tips:
+          - type: "info"
+            title: "Estrutura do Compose"
+            content: "O arquivo docker-compose.yaml define 'services' (containers), 'networks' (redes) e 'volumes'. Cada serviço tem opções como 'image', 'ports', 'volumes', 'environment', etc. A indentação no YAML é crítica - use espaços, não tabs."
+          - type: "tip"
+            title: "Versões do Compose"
+            content: "Diferentes versões do Docker Compose suportam diferentes recursos. A versão '3' e suas subversões são as mais recentes e recomendadas. Versões mais antigas (1.x, 2.x) têm sintaxe ligeiramente diferente."
+          - type: "warning"
+            title: "Nomes de Serviços"
+            content: "Os nomes dos serviços definidos no docker-compose.yaml se tornam nomes DNS na rede do Docker. No nosso exemplo, o serviço 'webapp' pode se comunicar com o Redis usando simplesmente o hostname 'redis'."
+        validation:
+          - command: "test -f docker-compose.yaml && test -f html/index.html && echo 'ok'"
+            expectedOutput: "ok"
+            errorMessage: "O arquivo docker-compose.yaml ou html/index.html não foi criado corretamente. Verifique se você seguiu os passos para criar ambos os arquivos."
+
+      - name: "Executando a Aplicação com Compose"
+        description: "Use comandos do Docker Compose para iniciar, parar e gerenciar sua aplicação multi-container, entendendo o ciclo de vida dos containers e como eles se comunicam entre si."
+        steps:
+          - "Agora que temos nossa configuração pronta, vamos iniciar nossa aplicação multi-container usando o Docker Compose."
+          - "O comando principal do Docker Compose é o `docker-compose up`, que cria e inicia todos os containers definidos no arquivo docker-compose.yaml."
+          - "Vamos iniciar nossa aplicação em modo background (detached) para que possamos continuar usando o terminal:"
+          - "`docker-compose up -d`"
+          - "A flag `-d` (detached) faz com que os containers rodem em background, liberando o terminal. Sem esta flag, veríamos os logs dos containers no terminal."
+          - "O que acontece quando executamos este comando:"
+          - "1. O Docker Compose lê o arquivo docker-compose.yaml"
+          - "2. Cria a rede 'app-net' definida no arquivo (se não existir)"
+          - "3. Puxa as imagens necessárias (nginx:alpine e redis:alpine) se não estiverem disponíveis localmente"
+          - "4. Cria e inicia os containers para os serviços 'webapp' e 'redis'"
+          - "5. Configura as portas, volumes e redes conforme especificado"
+          - "Vamos verificar os containers criados pelo Docker Compose:"
+          - "`docker-compose ps`"
+          - "Este comando lista todos os containers que fazem parte da aplicação definida no docker-compose.yaml do diretório atual. Você deve ver dois containers em execução ('webapp' e 'redis')."
+          - "Para ver os logs gerados pelo serviço 'webapp' (Nginx):"
+          - "`docker-compose logs webapp`"
+          - "O comando `logs` exibe os logs de um serviço específico. Você pode omitir o nome do serviço para ver logs de todos os serviços, ou adicionar `-f` para seguir os logs em tempo real (`docker-compose logs -f`)."
+          - "Agora, vamos acessar a aplicação web para confirmar que está funcionando:"
+          - "`curl localhost:8080`"
+          - "Este comando envia uma requisição HTTP para o servidor Nginx rodando na porta 8080. Você deve ver o conteúdo do arquivo 'index.html' que criamos."
+          - "Poderíamos também acessar a aplicação através de um navegador, abrindo http://localhost:8080."
+          - "Observe que o Compose configurou automaticamente a comunicação entre os containers. O serviço 'webapp' pode se comunicar com o 'redis' usando simplesmente o nome 'redis' como hostname, já que ambos estão na mesma rede 'app-net'."
+        tips:
+          - type: "tip"
+            title: "Comandos 'up' e 'down'"
+            content: "`docker-compose up` cria e inicia os containers (e redes/volumes se não existirem). `docker-compose down` para e remove os containers e a rede padrão criada pelo compose. Adicionar `-d` ao comando 'up' faz com que os containers rodem em background."
+          - type: "info"
+            title: "Comunicação entre Serviços"
+            content: "Os serviços em um mesmo docker-compose podem se comunicar entre si usando o nome do serviço como hostname. Por exemplo, em nosso 'webapp' poderíamos conectar ao Redis usando o hostname 'redis' e a porta padrão 6379."
+          - type: "tip"
+            title: "Visualizando os Logs"
+            content: "Além de `docker-compose logs [serviço]`, você pode acompanhar os logs em tempo real com `docker-compose logs -f [serviço]`. Pressione Ctrl+C para sair do modo de acompanhamento."
+        validation:
+          - command: "curl -s localhost:8080 | grep 'Docker Compose'"
+            expectedOutput: "<h1>Bem-vindo ao Docker Compose!</h1>"
+            errorMessage: "Não foi possível acessar a aplicação Nginx via curl ou o conteúdo está incorreto. Verifique se os containers estão em execução com 'docker-compose ps'."
+
+      - name: "Parando e Removendo a Aplicação"
+        description: "Aprenda os diferentes comandos para gerenciar o ciclo de vida dos serviços no Docker Compose, entendendo a diferença entre parar containers, removê-los e limpar recursos."
+        steps:
+          - "Agora que entendemos como nossa aplicação multi-container funciona, vamos aprender a gerenciar seu ciclo de vida de forma eficiente."
+          - "Existem diferentes comandos no Docker Compose para parar e iniciar serviços, dependendo do que você precisa:"
+          - "Vamos começar parando os serviços sem remover os containers:"
+          - "`docker-compose stop`"
+          - "O comando `stop` envia um sinal SIGTERM para os containers, dando a eles tempo para se encerrar graciosamente. Os containers permanecem existindo, apenas são parados."
+          - "Vamos verificar o status dos containers após o comando stop:"
+          - "`docker-compose ps`"
+          - "Você deve ver que os status dos containers agora é 'Exited' ou similar, indicando que eles não estão mais em execução, mas ainda existem."
+          - "Agora, vamos iniciar os serviços novamente sem precisar recriá-los:"
+          - "`docker-compose start`"
+          - "O comando `start` inicia containers existentes que foram parados anteriormente. É mais rápido que `up` porque não precisa recriar os containers."
+          - "Vamos verificar o status após o start:"
+          - "`docker-compose ps`"
+          - "Os containers devem estar novamente no estado 'Up' ou 'Running'."
+          - "Quando não precisamos mais da aplicação, podemos parar e remover completamente todos os recursos:"
+          - "`docker-compose down`"
+          - "O comando `down` é mais completo que `stop`:"
+          - "1. Para todos os containers (como o `stop`)"
+          - "2. Remove os containers parados"
+          - "3. Remove a rede criada pelo Compose"
+          - "No entanto, ele não remove volumes nomeados por padrão."
+          - "Vamos verificar se os containers foram realmente removidos:"
+          - "`docker-compose ps`"
+          - "Você não deve ver nenhum container listado, indicando que foram removidos com sucesso."
+          - "Se nossa aplicação tivesse volumes nomeados e quiséssemos removê-los também, usaríamos:"
+          - "`docker-compose down --volumes`"
+          - "Este comando remove tudo que o `down` normal remove, mas também remove os volumes nomeados definidos no arquivo docker-compose.yaml e os volumes anônimos associados aos containers."
+          - "Finalmente, vamos remover os arquivos que criamos para este laboratório:"
+          - "`rm -f docker-compose.yaml && rm -rf html`"
+          - "Estes comandos removerão o arquivo docker-compose.yaml e o diretório html com seu conteúdo."
+        tips:
+          - type: "warning"
+            title: "`docker-compose down --volumes`"
+            content: "O comando `down --volumes` remove containers, redes E volumes definidos na seção `volumes` do compose ou volumes anônimos criados pelos containers. Use com cuidado se precisar manter os dados persistentes."
+          - type: "info"
+            title: "Ciclo de Vida dos Containers"
+            content: "O Docker Compose segue o mesmo ciclo de vida do Docker: 'create' (criar) -> 'start' (iniciar) -> 'stop' (parar) -> 'rm' (remover). O comando 'up' combina 'create' e 'start', enquanto 'down' combina 'stop' e 'rm'."
+          - type: "tip"
+            title: "Diferença entre Parar e Remover"
+            content: "Ao parar um container com `stop`, seus dados e configurações são preservados, e ele pode ser reiniciado rapidamente com `start`. Remover um container com `down` elimina completamente o container, e recriá-lo exigirá mais recursos."
+          - type: "info"
+            title: "Comandos Adicionais"
+            content: "Outros comandos úteis incluem: `docker-compose restart` (reinicia containers sem recriação), `docker-compose pause`/`unpause` (pausa/despausa sem parar), `docker-compose exec` (executa comandos em containers em execução)."
+        validation:
+          - command: "docker-compose ps -q | wc -l" # Deve retornar 0 containers
+            expectedOutput: "0"
+            errorMessage: "Os containers do Docker Compose não foram removidos corretamente com 'docker-compose down'. Verifique se executou o comando e se não há containers listados com 'docker-compose ps'."
+          - command: "test -f docker-compose.yaml || test -d html || echo 'cleaned'"
+            expectedOutput: "cleaned"
+            errorMessage: "Os arquivos e diretórios criados durante o laboratório não foram removidos corretamente. Execute 'rm -f docker-compose.yaml && rm -rf html' para limpar." 

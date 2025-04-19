@@ -1,0 +1,203 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: lab-linux-monitoramento-sistema
+  namespace: girus
+  labels:
+    app: girus-lab-template
+data:
+  lab.yaml: |
+    name: linux-monitoramento-sistema
+    title: "Monitoramento Básico do Sistema Linux"
+    description: "Aprenda a usar ferramentas como vmstat, iostat, free e o /proc para monitorar recursos do sistema"
+    difficulty: "Iniciante"
+    duration: "20 minutos"
+    autor: "Jeferson Fernando"
+    lab_type: "linux"
+    sections:
+      - title: "Introdução ao Monitoramento do Sistema"
+        content: |
+          # Monitoramento do Sistema Linux
+
+          Neste laboratório, você vai aprender a utilizar ferramentas nativas do Linux para monitorar
+          recursos do sistema como CPU, memória, disco e processos.
+
+          ## Ferramentas que serão abordadas
+
+          * `top` - Visão geral dos processos e recursos do sistema
+          * `vmstat` - Estatísticas de memória virtual
+          * `iostat` - Estatísticas de I/O de dispositivos de armazenamento
+          * `free` - Estatísticas de memória RAM
+          * Diretório `/proc` - Interface para acessar informações do kernel
+
+      - title: "Utilizando o comando free"
+        content: |
+          # Monitorando a Memória RAM
+
+          O comando `free` exibe informações sobre a memória RAM e swap do sistema.
+
+          ```bash
+          # Exibe informações básicas sobre a memória
+          free
+
+          # Exibe informações em megabytes
+          free -m
+
+          # Exibe informações em formato legível por humanos (MB, GB, etc.)
+          free -h
+          ```
+
+          ## Interpretando a saída
+
+          ```
+                      total       used       free     shared    buffers     cached
+          Mem:         15895      10913       4981        305        896       4229
+          -/+ buffers/cache:       5788      10106
+          Swap:          975          0        975
+          ```
+
+          * **total**: memória total disponível
+          * **used**: memória utilizada
+          * **free**: memória livre
+          * **shared**: memória compartilhada
+          * **buffers/cache**: memória utilizada pelo kernel como cache
+
+      - title: "Utilizando o comando top"
+        content: |
+          # Monitorando Processos em Tempo Real
+
+          O comando `top` exibe uma visão em tempo real dos processos em execução e
+          do consumo de recursos do sistema.
+
+          ```bash
+          # Inicia o top com a visualização padrão
+          top
+          ```
+
+          ## Comandos úteis dentro do top
+
+          * `q` - Sair do top
+          * `M` - Ordenar processos por uso de memória
+          * `P` - Ordenar processos por uso de CPU
+          * `1` - Mostrar todas as CPUs individualmente
+          * `k` - Matar um processo (requer PID)
+          * `r` - Alterar a prioridade de um processo
+
+      - title: "Utilizando o vmstat e iostat"
+        content: |
+          # Estatísticas de Memória Virtual e I/O
+
+          ## vmstat
+
+          O comando `vmstat` fornece estatísticas sobre a memória virtual, processos,
+          E/S de blocos, interrupções e atividade da CPU.
+
+          ```bash
+          # Exibe estatísticas a cada 2 segundos, por 5 amostras
+          vmstat 2 5
+          ```
+
+          ## iostat
+
+          O comando `iostat` fornece estatísticas de E/S para dispositivos e partições.
+
+          ```bash
+          # Instalar o pacote necessário (caso não esteja instalado)
+          apt-get install sysstat
+
+          # Exibe estatísticas a cada 1 segundo, por 3 amostras
+          iostat 1 3
+          
+          # Exibe estatísticas detalhadas de discos
+          iostat -x
+          ```
+
+      - title: "Explorando o diretório /proc"
+        content: |
+          # O Diretório /proc
+
+          O diretório `/proc` é um sistema de arquivos virtual que fornece informações
+          sobre processos em execução e recursos do sistema.
+
+          ```bash
+          # Visualizar informações do CPU
+          cat /proc/cpuinfo
+
+          # Visualizar informações de memória
+          cat /proc/meminfo
+
+          # Visualizar informações do sistema de arquivos montados
+          cat /proc/mounts
+
+          # Visualizar informações de uptime do sistema
+          cat /proc/uptime
+          ```
+
+          ## Explorando informações de um processo específico
+
+          Cada processo tem um diretório no `/proc`, identificado pelo seu PID.
+
+          ```bash
+          # Para ver o PID de um processo, use ps
+          ps aux | grep bash
+
+          # Agora você pode explorar informações desse processo
+          ls -la /proc/PID/
+          
+          # Ver os limites de recursos para o processo
+          cat /proc/PID/limits
+          
+          # Ver variáveis de ambiente do processo
+          cat /proc/PID/environ | tr '\0' '\n'
+          ```
+
+      - title: "Exercícios Práticos"
+        content: |
+          # Exercícios Práticos
+
+          Agora que você conhece as ferramentas básicas de monitoramento, tente os seguintes exercícios:
+
+          1. Use o comando `top` para identificar o processo que está usando mais CPU.
+             Depois, ordene os processos pelo uso de memória.
+
+          2. Execute o comando `free` e descubra quanto de memória RAM está:
+             - Total no sistema
+             - Sendo usada pelos aplicativos
+             - Usada como cache pelo kernel
+             - Livre para uso
+
+          3. Use o `vmstat` para verificar se há alta atividade de swap no sistema.
+
+          4. Use `iostat -x` para verificar qual disco está com mais atividade de I/O.
+
+          5. Explore o arquivo `/proc/loadavg` e pesquise o que significam
+             os números mostrados nele.
+
+      - title: "Conclusão"
+        content: |
+          # Conclusão
+
+          Neste laboratório, você aprendeu a usar diversas ferramentas nativas do Linux
+          para monitorar o estado do sistema e recursos como CPU, memória e discos.
+
+          ## Resumo das ferramentas
+
+          * `top` - Visão geral dos processos e recursos em tempo real
+          * `free` - Estatísticas de uso de memória
+          * `vmstat` - Estatísticas de memória virtual e CPU
+          * `iostat` - Estatísticas de atividade de disco
+          * `/proc` - Sistema de arquivo virtual com informações do kernel
+
+          ## Próximos passos
+
+          Você pode continuar seu aprendizado explorando ferramentas mais avançadas como:
+
+          * `htop` - Versão melhorada do top
+          * `iotop` - Monitora I/O por processo
+          * `sar` - System Activity Reporter (parte do pacote sysstat)
+          * `nmon` - Monitor de performance para sistemas Unix
+
+          ## Referências
+
+          * [Linux Performance Monitoring Tools](https://www.tecmint.com/command-line-tools-to-monitor-linux-performance/)
+          * [The /proc filesystem documentation](https://www.kernel.org/doc/Documentation/filesystems/proc.txt)

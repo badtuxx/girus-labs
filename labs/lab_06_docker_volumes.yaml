@@ -1,0 +1,132 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: docker-volumes-lab
+  namespace: girus
+  labels:
+    app: girus-lab-template
+data:
+  lab.yaml: |
+    name: docker-volumes
+    title: "Persistência de Dados com Docker Volumes"
+    description: "Aprenda a persistir dados de containers usando bind mounts e named volumes neste laboratório detalhado e guiado. Entenda conceitos fundamentais para garantir que seus dados persistam além do ciclo de vida dos containers."
+    duration: 20m
+    image: "linuxtips/girus-devops:0.1"
+    privileged: true # Acesso ao Docker daemon
+    tasks:
+      - name: "Usando Bind Mounts"
+        description: "Mapeie um diretório do host para dentro de um container, entendendo como os dados podem ser compartilhados entre o sistema host e os containers Docker."
+        steps:
+          - "Os **bind mounts** são um dos mecanismos fundamentais de persistência de dados no Docker. Eles permitem mapear um diretório ou arquivo do host diretamente para um container."
+          - "Vamos começar criando um diretório no host que será usado para demonstrar este conceito:"
+          - "`mkdir dados_host`"
+          - "Agora, vamos criar um arquivo de texto simples dentro deste diretório para demonstrar a persistência:"
+          - "`echo 'Dados do Host!' > dados_host/arquivo_host.txt`"
+          - "Vamos verificar se o arquivo foi criado corretamente:"
+          - "`cat dados_host/arquivo_host.txt`"
+          - "Agora vamos executar um container Alpine e montar o diretório 'dados_host' em '/app/data' dentro do container:"
+          - "`docker run --rm -v $(pwd)/dados_host:/app/data alpine ls /app/data`"
+          - "Observe que usamos a flag `-v` para especificar o mapeamento entre o diretório do host e o diretório dentro do container."
+          - "O formato desse mapeamento é `-v <caminho_no_host>:<caminho_no_container>`."
+          - "Vamos ler o conteúdo do arquivo de dentro do container para confirmar que ele está acessível:"
+          - "`docker run --rm -v $(pwd)/dados_host:/app/data alpine cat /app/data/arquivo_host.txt`"
+          - "Uma das vantagens dos bind mounts é que qualquer modificação no arquivo, seja pelo host ou pelo container, é instantaneamente visível para ambos. Vamos demonstrar isso modificando o arquivo de dentro de um container:"
+          - "`docker run --rm -v $(pwd)/dados_host:/app/data alpine sh -c 'echo \"Modificado pelo container\" > /app/data/arquivo_host.txt'`"
+          - "Agora, verifique o conteúdo do arquivo no host para confirmar que a modificação feita pelo container foi persistida:"
+          - "`cat dados_host/arquivo_host.txt`"
+          - "Você deve ver o texto 'Modificado pelo container', demonstrando que as alterações são bidirecionais."
+          - "Para limpar nosso ambiente, remova o diretório criado:"
+          - "`rm -rf dados_host`"
+        tips:
+          - type: "warning"
+            title: "Bind Mounts e Permissões"
+            content: "Bind mounts refletem diretamente o filesystem do host. Tenha cuidado com permissões e possíveis modificações indesejadas em arquivos do host. Os containers operam com os mesmos privilégios do usuário que iniciou o Docker daemon, o que pode levar a problemas de segurança se não for gerenciado adequadamente."
+          - type: "info"
+            title: "Caminho Absoluto"
+            content: "É recomendado usar caminhos absolutos para o diretório do host em bind mounts, como `$(pwd)/dados_host` que resolve para o caminho absoluto do diretório atual. Isso evita confusões sobre qual diretório está sendo montado."
+          - type: "tip"
+            title: "Modo somente leitura"
+            content: "Se você deseja permitir que o container apenas leia os dados, mas não os modifique, você pode adicionar `:ro` ao final do mapeamento: `-v $(pwd)/dados_host:/app/data:ro`."
+        validation:
+          - command: "cat dados_host/arquivo_host.txt 2>/dev/null || echo 'cleaned'" # Verifica se foi limpo
+            expectedOutput: "cleaned"
+            errorMessage: "O diretório 'dados_host' ou seu conteúdo não foi removido corretamente. Execute `rm -rf dados_host` para limpar o ambiente."
+
+      - name: "Usando Named Volumes"
+        description: "Crie e gerencie volumes gerenciados pelo Docker para persistência de dados mais robusta e independente da estrutura de diretórios do host."
+        steps:
+          - "Os **named volumes** são a forma preferida de persistir dados em containers Docker para aplicações em produção. Diferente dos bind mounts, os named volumes são completamente gerenciados pelo Docker e não dependem da estrutura de diretórios do host."
+          - "Vamos criar um volume nomeado gerenciado pelo Docker:"
+          - "`docker volume create meu_volume`"
+          - "Esta operação cria um volume que será gerenciado pelo Docker. Os dados deste volume serão armazenados em um local específico gerenciado pelo Docker, geralmente em `/var/lib/docker/volumes/`."
+          - "Vamos listar os volumes Docker para confirmar que nosso volume foi criado:"
+          - "`docker volume ls`"
+          - "Para obter informações detalhadas sobre o volume, podemos inspecioná-lo:"
+          - "`docker volume inspect meu_volume`"
+          - "Você verá detalhes como o driver usado, o ponto de montagem no host e quaisquer opções de montagem."
+          - "Agora, vamos executar um container e escrever dados no volume montado em '/data':"
+          - "`docker run --rm -v meu_volume:/data alpine sh -c 'echo \"Dados persistidos no volume\" > /data/dados.txt'`"
+          - "Observe que ao usar named volumes, você não precisa especificar um caminho completo para o host, apenas o nome do volume."
+          - "Mesmo após o container ser removido (devido à flag `--rm`), os dados permanecem no volume. Vamos verificar isso executando outro container e lendo os dados do mesmo volume:"
+          - "`docker run --rm -v meu_volume:/data alpine cat /data/dados.txt`"
+          - "Você deverá ver 'Dados persistidos no volume', confirmando que os dados sobreviveram ao ciclo de vida do container."
+          - "Podemos até criar um novo arquivo ou modificar o existente e ele continuará persistindo:"
+          - "`docker run --rm -v meu_volume:/data alpine sh -c 'echo \"Linha adicional\" >> /data/dados.txt'`"
+          - "Vamos verificar as modificações:"
+          - "`docker run --rm -v meu_volume:/data alpine cat /data/dados.txt`"
+        tips:
+          - type: "tip"
+            title: "Vantagens dos Named Volumes"
+            content: "Named volumes são gerenciados pelo Docker, independentes do filesystem do host, mais portáveis e geralmente a forma preferida de persistir dados de containers. Eles são mais fáceis de fazer backup, migrar entre hosts e são mais compatíveis com orquestradores como o Docker Swarm e Kubernetes."
+          - type: "info"
+            title: "Volumes vs Bind Mounts"
+            content: "Use named volumes quando o foco for a persistência de dados do container, especialmente para bancos de dados e aplicações que geram dados. Use bind mounts quando precisar compartilhar arquivos específicos entre o host e o container, como código-fonte durante o desenvolvimento."
+          - type: "warning"
+            title: "Localização dos dados"
+            content: "Embora você possa inspecionar onde os dados do volume estão fisicamente armazenados no host com `docker volume inspect`, é considerada uma má prática acessar diretamente esses arquivos. Sempre use o Docker para interagir com os volumes."
+        validation:
+          - command: "docker run --rm -v meu_volume:/data alpine cat /data/dados.txt | grep 'Dados persistidos no volume'"
+            expectedOutput: "Dados persistidos no volume"
+            errorMessage: "Não foi possível ler os dados escritos no named volume 'meu_volume'. Verifique se o volume foi criado corretamente e se os dados foram escritos."
+
+      - name: "Gerenciando Named Volumes"
+        description: "Aprenda a listar, inspecionar e remover volumes Docker, entendendo o ciclo de vida dos dados persistidos e as melhores práticas para gerenciamento."
+        steps:
+          - "O gerenciamento adequado de volumes é crucial para evitar acúmulo de dados não utilizados e garantir a segurança dos dados importantes."
+          - "Primeiro, vamos verificar se o nosso 'meu_volume' ainda existe:"
+          - "`docker volume ls | grep meu_volume`"
+          - "Os volumes Docker persistem mesmo após os containers que os utilizam serem removidos. Isso é ótimo para persistência, mas também significa que você precisa gerenciar manualmente a limpeza."
+          - "Para remover um volume específico, usamos o comando 'docker volume rm':"
+          - "`docker volume rm meu_volume`"
+          - "Vamos verificar se o volume foi removido corretamente:"
+          - "`docker volume ls | grep meu_volume || echo 'Volume removido'`"
+          - "Se não houver saída da primeira parte do comando (docker volume ls | grep), o texto 'Volume removido' será exibido, confirmando a remoção."
+          - "O Docker impede a remoção de volumes que estão sendo utilizados por containers (mesmo parados). Tente remover um volume que não existe (deve dar erro):"
+          - "`docker volume rm volume_inexistente || echo 'Erro esperado'`"
+          - "Em sistemas de produção, é comum acumular volumes não utilizados após remover containers. Para limpar todos os volumes 'dangling' (não associados a nenhum container), use:"
+          - "`docker volume prune -f`" # -f para não pedir confirmação
+          - "A flag '-f' pula a confirmação, mas em ambientes de produção, você pode querer remover a flag para revisar o que será removido."
+          - "Vamos criar alguns volumes temporários para demonstrar o prune:"
+          - "`docker volume create temp_volume1`"
+          - "`docker volume create temp_volume2`"
+          - "Agora executamos o prune novamente para remover esses volumes não utilizados:"
+          - "`docker volume prune -f`"
+          - "Verificamos que todos os volumes temporários foram removidos:"
+          - "`docker volume ls | grep temp_ || echo 'Volumes temporários removidos'`"
+        tips:
+          - type: "warning"
+            title: "Remoção de Volumes"
+            content: "Remover um volume apaga permanentemente todos os dados armazenados nele. Tenha certeza antes de executar `docker volume rm` ou `docker volume prune`. Em ambientes de produção, considere implementar políticas de backup antes de remover volumes."
+          - type: "info"
+            title: "Volume Dangling"
+            content: "Um volume 'dangling' é aquele que não está mais associado a nenhum container. O comando `docker volume ls -f dangling=true` lista apenas esses volumes, útil para verificar quais volumes podem ser removidos com segurança."
+          - type: "tip"
+            title: "Nomeando Volumes"
+            content: "Adote uma convenção de nomenclatura clara para seus volumes, como 'app_database', 'app_logs', etc. Isso facilita identificar o propósito de cada volume e gerenciá-los de forma mais eficiente."
+        validation:
+          - command: "docker volume ls | grep meu_volume || echo 'Volume removido'"
+            expectedOutput: "Volume removido"
+            errorMessage: "O volume 'meu_volume' não foi removido corretamente. Execute 'docker volume rm meu_volume' para remover." 
+          - command: "docker volume ls | grep temp_ || echo 'Volumes temporários removidos'"
+            expectedOutput: "Volumes temporários removidos"
+            errorMessage: "Os volumes temporários não foram removidos corretamente. Execute 'docker volume prune -f' para limpar."

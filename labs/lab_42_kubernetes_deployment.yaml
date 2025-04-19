@@ -1,0 +1,131 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kubernetes-deployment-lab
+  namespace: girus
+  labels:
+    app: girus-lab-template
+data:
+  lab.yaml: |
+    name: kubernetes-deployment
+    title: "Desafio: Deployments no Kubernetes"
+    description: "Neste desafio, você precisa demonstrar seu conhecimento prático de Deployments no Kubernetes, criando e gerenciando recursos conforme solicitado."
+    duration: 15m
+    timerEnabled: true
+    maxDuration: 20m
+    image: "linuxtips/girus-kind-single-node:0.1"
+    tasks:
+      - name: "Desafio 1: Criar um Deployment do Nginx"
+        description: "Crie um deployment do Nginx com as especificações solicitadas"
+        steps:
+          - "Crie um namespace chamado 'challenge-namespace'"
+          - "Crie um deployment do Nginx com as seguintes características:"
+          - "- Nome: nginx-deployment"
+          - "- Namespace: challenge-namespace"
+          - "- Imagem: nginx:1.20"
+          - "- Replicas: 2"
+          - "- Label: app=nginx-challenge"
+          - "Verifique se o deployment foi criado corretamente e está rodando."
+        tips:
+          - type: "info"
+            title: "Recursos necessários"
+            content: "Para este desafio, você precisará utilizar os recursos Namespace e Deployment do Kubernetes."
+          - type: "warning"
+            title: "Validação"
+            content: "Certifique-se de que os recursos estão exatamente como especificado para passar nas validações, incluindo nomes e labels."
+        validation:
+          - command: "kubectl get namespace challenge-namespace -o name 2>/dev/null || echo ''"
+            expectedOutput: "namespace/challenge-namespace"
+            errorMessage: "O namespace 'challenge-namespace' não foi criado ou está incorreto."
+          - command: "kubectl get deployment nginx-deployment -n challenge-namespace -o jsonpath='{.spec.replicas}' 2>/dev/null || echo ''"
+            expectedOutput: "2"
+            errorMessage: "O deployment 'nginx-deployment' não foi criado corretamente ou não possui 2 réplicas."
+          - command: "kubectl get deployment nginx-deployment -n challenge-namespace -o jsonpath='{.spec.template.spec.containers[0].image}' 2>/dev/null || echo ''"
+            expectedOutput: "nginx:1.20"
+            errorMessage: "A imagem do container no deployment não é nginx:1.20"
+          - command: "kubectl get deployment nginx-deployment -n challenge-namespace -o jsonpath='{.spec.selector.matchLabels.app}' 2>/dev/null || echo ''"
+            expectedOutput: "nginx-challenge"
+            errorMessage: "O selector/label 'app=nginx-challenge' não está configurado corretamente."
+      
+      - name: "Desafio 2: Escalar e Atualizar um Deployment"
+        description: "Modifique o deployment existente conforme solicitado"
+        steps:
+          - "Escale o deployment 'nginx-deployment' para 4 réplicas"
+          - "Atualize a imagem do deployment para nginx:1.21"
+          - "Adicione uma anotação ao deployment: maintainer=devops-team"
+        tips:
+          - type: "warning"
+            title: "Comandos corretos"
+            content: "Certifique-se de utilizar os comandos corretos para escalar e atualizar o deployment. Há múltiplas formas de fazer isso, algumas mais adequadas que outras."
+          - type: "info"
+            title: "Verificação"
+            content: "Após aplicar as mudanças, verifique se foram implementadas corretamente."
+        validation:
+          - command: "kubectl get deployment nginx-deployment -n challenge-namespace -o jsonpath='{.spec.replicas}' 2>/dev/null || echo ''"
+            expectedOutput: "4"
+            errorMessage: "O deployment 'nginx-deployment' não foi escalado para 4 réplicas."
+          - command: "kubectl get deployment nginx-deployment -n challenge-namespace -o jsonpath='{.spec.template.spec.containers[0].image}' 2>/dev/null || echo ''"
+            expectedOutput: "nginx:1.21"
+            errorMessage: "A imagem do container no deployment não foi atualizada para nginx:1.21"
+          - command: "kubectl get deployment nginx-deployment -n challenge-namespace -o jsonpath='{.metadata.annotations.maintainer}' 2>/dev/null || echo ''"
+            expectedOutput: "devops-team"
+            errorMessage: "A anotação 'maintainer=devops-team' não foi adicionada ao deployment."
+
+      - name: "Desafio 3: Criar um Service para o Deployment"
+        description: "Exponha o deployment criado através de um Service"
+        steps:
+          - "Crie um Service com as seguintes características:"
+          - "- Nome: nginx-service"
+          - "- Namespace: challenge-namespace"
+          - "- Tipo: NodePort"
+          - "- Porto do serviço: 80"
+          - "- Porta do container alvo: 80"
+          - "- Deve selecionar os pods do deployment 'nginx-deployment'"
+          - "Verifique se o service foi criado e está corretamente configurado."
+        tips:
+          - type: "info"
+            title: "Seletores"
+            content: "Lembre-se que o service usa seletores para identificar os pods que deve encaminhar tráfego."
+          - type: "tip"
+            title: "Verificação"
+            content: "Você pode verificar se o service está funcionando tentando acessar a URL via curl ou verificando os endpoints."
+        validation:
+          - command: "kubectl get service nginx-service -n challenge-namespace -o name 2>/dev/null || echo ''"
+            expectedOutput: "service/nginx-service"
+            errorMessage: "O service 'nginx-service' não foi criado."
+          - command: "kubectl get service nginx-service -n challenge-namespace -o jsonpath='{.spec.type}' 2>/dev/null || echo ''"
+            expectedOutput: "NodePort"
+            errorMessage: "O service não é do tipo NodePort."
+          - command: "kubectl get service nginx-service -n challenge-namespace -o jsonpath='{.spec.ports[0].port}' 2>/dev/null || echo ''"
+            expectedOutput: "80"
+            errorMessage: "A porta do service não é 80."
+          - command: "kubectl get service nginx-service -n challenge-namespace -o jsonpath='{.spec.selector.app}' 2>/dev/null || echo ''"
+            expectedOutput: "nginx-challenge"
+            errorMessage: "O service não está selecionando pods com o label 'app=nginx-challenge'."
+      
+      - name: "Desafio 4: Criar um ConfigMap e atualizar o Deployment"
+        description: "Configure um ConfigMap e modifique o deployment para utilizá-lo"
+        steps:
+          - "Crie um ConfigMap com as seguintes características:"
+          - "- Nome: nginx-config"
+          - "- Namespace: challenge-namespace"
+          - "- Deve conter uma chave 'index.html' com valor '<html><body><h1>Desafio Kubernetes Concluído!</h1></body></html>'"
+          - "Modifique o deployment para montar o ConfigMap como um volume em /usr/share/nginx/html/"
+          - "Verifique se a configuração foi aplicada corretamente."
+        tips:
+          - type: "warning"
+            title: "Volumes e montagens"
+            content: "Você precisará adicionar uma seção de volumes ao deployment e uma volumeMount ao container."
+          - type: "info"
+            title: "Validação"
+            content: "A validação verificará se o ConfigMap existe e se está montado corretamente no deployment."
+        validation:
+          - command: "kubectl get configmap nginx-config -n challenge-namespace -o jsonpath='{.data[\"index.html\"]}' 2>/dev/null || echo ''"
+            expectedOutput: "<html><body><h1>Desafio Kubernetes Concluído!</h1></body></html>"
+            errorMessage: "O ConfigMap 'nginx-config' não foi criado corretamente ou não contém a chave 'index.html' com o valor esperado."
+          - command: "kubectl get deployment nginx-deployment -n challenge-namespace -o jsonpath='{.spec.template.spec.volumes[?(@.name==\"config-volume\")].configMap.name}' 2>/dev/null || echo ''"
+            expectedOutput: "nginx-config"
+            errorMessage: "O deployment não tem um volume configurado com o ConfigMap 'nginx-config'."
+          - command: "kubectl get deployment nginx-deployment -n challenge-namespace -o jsonpath='{.spec.template.spec.containers[0].volumeMounts[?(@.name==\"config-volume\")].mountPath}' 2>/dev/null || echo ''"
+            expectedOutput: "/usr/share/nginx/html/"
+            errorMessage: "O volume do ConfigMap não está montado em '/usr/share/nginx/html/' no container."

@@ -1,0 +1,416 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: lab-aws-s3-storage
+  namespace: girus
+  labels:
+    app: girus-lab-template
+data:
+  lab.yaml: |
+    name: aws-s3-storage
+    title: "AWS S3 - Armazenamento na Nuvem"
+    description: "Como utilizar o serviço S3 da AWS para armazenamento de objetos"
+    difficulty: "Iniciante"
+    duration: "30 minutos"
+    autor: "Jeferson Fernando"
+    lab_type: "cloud"
+    sections:
+      - title: "Introdução ao AWS S3"
+        content: |
+          # AWS S3 - Simple Storage Service
+
+          Neste laboratório, você aprenderá sobre o Amazon S3 (Simple Storage Service), um serviço 
+          de armazenamento de objetos que oferece escalabilidade, disponibilidade de dados, 
+          segurança e performance líderes do setor.
+
+          ## O que é o Amazon S3?
+
+          O Amazon S3 é um serviço de armazenamento de objetos que permite armazenar e recuperar 
+          qualquer quantidade de dados, a qualquer momento, de qualquer lugar na web. Foi projetado 
+          para fornecer durabilidade de 99,999999999% (11 noves).
+
+          ## Conceitos-chave do S3
+
+          * **Bucket**: Um container para armazenar objetos. Cada bucket possui um nome globalmente único.
+          * **Objeto**: A entidade fundamental armazenada no S3. Consiste em dados e metadados.
+          * **Chave (Key)**: O nome exclusivo atribuído a um objeto dentro de um bucket.
+          * **Políticas de acesso**: Controle quem pode acessar seus buckets e objetos.
+          * **Classes de armazenamento**: Diferentes opções de armazenamento com variados níveis de 
+            disponibilidade, durabilidade e custo.
+
+      - title: "Criando um bucket S3"
+        content: |
+          # Criando um bucket S3
+
+          Vamos começar criando um bucket S3 utilizando a AWS CLI.
+
+          ## Configurando a AWS CLI
+
+          No laboratório, a AWS CLI já está configurada, mas em um ambiente real, você precisaria configurar:
+
+          ```bash
+          # Configurar as credenciais da AWS
+          aws configure
+          ```
+
+          ## Criar um bucket S3
+
+          ```bash
+          # Criar um bucket com um nome único
+          # O nome deve ser globalmente único em toda a AWS
+          # Use um nome como: seu-nome-lab-girus-YYYYMMDD
+          
+          BUCKET_NAME=seu-nome-lab-girus-$(date +%Y%m%d)
+          aws s3 mb s3://$BUCKET_NAME
+          
+          # Verificar a criação do bucket
+          aws s3 ls
+          ```
+
+          > **Importante**: Os nomes de buckets S3 devem ser únicos globalmente, entre todos os clientes AWS.
+
+          ## Habilitando versionamento de objetos
+
+          ```bash
+          # Habilitar versionamento para o bucket
+          aws s3api put-bucket-versioning --bucket $BUCKET_NAME --versioning-configuration Status=Enabled
+          
+          # Verificar a configuração de versionamento
+          aws s3api get-bucket-versioning --bucket $BUCKET_NAME
+          ```
+
+      - title: "Upload e download de objetos"
+        content: |
+          # Upload e download de objetos
+
+          Vamos aprender a enviar e baixar arquivos do seu bucket S3.
+
+          ## Criando arquivos para upload
+
+          ```bash
+          # Criar um diretório para teste
+          mkdir -p ~/s3-lab
+          cd ~/s3-lab
+          
+          # Criar um arquivo de texto
+          echo "Este é um arquivo de teste para o S3" > arquivo-teste.txt
+          
+          # Criar uma imagem de teste (simulada)
+          echo "CONTEÚDO DE IMAGEM SIMULADA" > imagem-teste.jpg
+          ```
+
+          ## Upload de arquivos
+
+          ```bash
+          # Upload de um arquivo único
+          aws s3 cp arquivo-teste.txt s3://$BUCKET_NAME/
+          
+          # Upload com um prefixo (simula pasta)
+          aws s3 cp imagem-teste.jpg s3://$BUCKET_NAME/imagens/
+          
+          # Upload de um diretório inteiro
+          aws s3 cp ~/s3-lab s3://$BUCKET_NAME/backup/ --recursive
+          ```
+
+          ## Listar objetos
+
+          ```bash
+          # Listar todos os objetos no bucket
+          aws s3 ls s3://$BUCKET_NAME/
+          
+          # Listar objetos em um "diretório"
+          aws s3 ls s3://$BUCKET_NAME/imagens/
+          ```
+
+          ## Download de objetos
+
+          ```bash
+          # Criar diretório para downloads
+          mkdir -p ~/s3-downloads
+          
+          # Download de um arquivo
+          aws s3 cp s3://$BUCKET_NAME/arquivo-teste.txt ~/s3-downloads/
+          
+          # Download de todos os objetos
+          aws s3 cp s3://$BUCKET_NAME/ ~/s3-downloads/ --recursive
+          ```
+
+      - title: "Gerenciando objetos no S3"
+        content: |
+          # Gerenciando objetos no S3
+
+          Vamos explorar operações de gerenciamento de objetos.
+
+          ## Atualizar um objeto (versionamento)
+
+          ```bash
+          # Modificar o arquivo local
+          echo "Este arquivo foi atualizado" > ~/s3-lab/arquivo-teste.txt
+          
+          # Upload da nova versão
+          aws s3 cp ~/s3-lab/arquivo-teste.txt s3://$BUCKET_NAME/
+          
+          # Listar as versões do objeto
+          aws s3api list-object-versions --bucket $BUCKET_NAME --prefix arquivo-teste.txt
+          ```
+
+          ## Definindo metadados
+
+          ```bash
+          # Upload com metadados
+          aws s3 cp ~/s3-lab/imagem-teste.jpg s3://$BUCKET_NAME/imagens/imagem-com-metadata.jpg \
+            --metadata "descrição=Imagem de teste para o laboratório,autor=Aluno"
+          
+          # Verificar os metadados
+          aws s3api head-object --bucket $BUCKET_NAME --key imagens/imagem-com-metadata.jpg
+          ```
+
+          ## Copiando objetos entre buckets
+          
+          Vamos criar um segundo bucket e copiar objetos:
+
+          ```bash
+          # Criar um segundo bucket
+          BUCKET_BACKUP=seu-nome-backup-$(date +%Y%m%d)
+          aws s3 mb s3://$BUCKET_BACKUP
+          
+          # Copiar um objeto entre buckets
+          aws s3 cp s3://$BUCKET_NAME/arquivo-teste.txt s3://$BUCKET_BACKUP/
+          
+          # Copiar todos os objetos
+          aws s3 cp s3://$BUCKET_NAME/ s3://$BUCKET_BACKUP/ --recursive
+          ```
+
+      - title: "Configurando políticas de acesso"
+        content: |
+          # Configurando políticas de acesso
+
+          Vamos aprender a configurar permissões para o seu bucket S3.
+
+          ## Política de bucket
+
+          Crie um arquivo de política `bucket-policy.json`:
+
+          ```json
+          {
+              "Version": "2012-10-17",
+              "Statement": [
+                  {
+                      "Sid": "PublicReadForGetBucketObjects",
+                      "Effect": "Allow",
+                      "Principal": "*",
+                      "Action": "s3:GetObject",
+                      "Resource": "arn:aws:s3:::NOME_DO_BUCKET/*"
+                  }
+              ]
+          }
+          ```
+
+          Substitua `NOME_DO_BUCKET` pelo seu bucket:
+
+          ```bash
+          # Substituir o nome do bucket na política
+          sed -i "s/NOME_DO_BUCKET/$BUCKET_NAME/g" bucket-policy.json
+          
+          # Aplicar a política
+          aws s3api put-bucket-policy --bucket $BUCKET_NAME --policy file://bucket-policy.json
+          ```
+
+          ## Tornando um objeto público
+
+          ```bash
+          # Tornar um objeto público
+          aws s3api put-object-acl --bucket $BUCKET_NAME --key arquivo-teste.txt --acl public-read
+          
+          # URL para acesso público
+          echo "https://$BUCKET_NAME.s3.amazonaws.com/arquivo-teste.txt"
+          ```
+
+          ## Remover permissões públicas
+
+          ```bash
+          # Bloquear acesso público (recomendado para produção)
+          aws s3api put-public-access-block \
+            --bucket $BUCKET_NAME \
+            --public-access-block-configuration "BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true"
+          
+          # Remover a política de bucket
+          aws s3api delete-bucket-policy --bucket $BUCKET_NAME
+          ```
+
+      - title: "Classes de armazenamento e Lifecycle"
+        content: |
+          # Classes de armazenamento e Lifecycle
+
+          O S3 oferece várias classes de armazenamento e regras de ciclo de vida.
+
+          ## Classes de armazenamento disponíveis
+
+          * **S3 Standard**: Uso geral, acesso frequente
+          * **S3 Intelligent-Tiering**: Otimiza custos movendo objetos entre tiers
+          * **S3 Standard-IA**: Acesso infrequente, recuperação rápida
+          * **S3 One Zone-IA**: Acesso infrequente, uma única zona de disponibilidade
+          * **S3 Glacier**: Arquivamento de longo prazo, recuperação de minutos a horas
+          * **S3 Glacier Deep Archive**: Arquivamento de longo prazo, recuperação em horas
+
+          ## Upload com classe específica
+
+          ```bash
+          # Enviar arquivo com classe de armazenamento específica
+          aws s3 cp ~/s3-lab/arquivo-teste.txt s3://$BUCKET_NAME/standard-ia/arquivo-teste.txt \
+            --storage-class STANDARD_IA
+          ```
+
+          ## Configurando regras de ciclo de vida
+
+          Crie um arquivo `lifecycle.json`:
+
+          ```json
+          {
+              "Rules": [
+                  {
+                      "ID": "MoveToCheaperStorage",
+                      "Status": "Enabled",
+                      "Prefix": "imagens/",
+                      "Transitions": [
+                          {
+                              "Days": 30,
+                              "StorageClass": "STANDARD_IA"
+                          },
+                          {
+                              "Days": 90,
+                              "StorageClass": "GLACIER"
+                          }
+                      ]
+                  }
+              ]
+          }
+          ```
+
+          Aplicar a configuração:
+
+          ```bash
+          # Configurar regras de ciclo de vida
+          aws s3api put-bucket-lifecycle-configuration \
+            --bucket $BUCKET_NAME \
+            --lifecycle-configuration file://lifecycle.json
+          
+          # Verificar a configuração
+          aws s3api get-bucket-lifecycle-configuration --bucket $BUCKET_NAME
+          ```
+
+      - title: "Recurso adicional: Hospedando um site estático"
+        content: |
+          # Hospedando um site estático
+
+          O S3 pode ser usado para hospedar sites estáticos.
+
+          ## Criando arquivos para o site
+
+          ```bash
+          # Criar diretório para o site
+          mkdir -p ~/s3-website
+          cd ~/s3-website
+          
+          # Criar página inicial
+          cat > index.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <title>Meu Site S3</title>
+              <style>
+                  body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
+                  h1 { color: #333; }
+              </style>
+          </head>
+          <body>
+              <h1>Bem-vindo ao meu site hospedado no S3!</h1>
+              <p>Este é um exemplo de site estático hospedado no Amazon S3.</p>
+              <p><a href="sobre.html">Sobre</a></p>
+          </body>
+          </html>
+          EOF
+          
+          # Criar página secundária
+          cat > sobre.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <title>Sobre - Meu Site S3</title>
+              <style>
+                  body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
+                  h1 { color: #333; }
+              </style>
+          </head>
+          <body>
+              <h1>Sobre este site</h1>
+              <p>Este site foi criado como parte do laboratório de AWS S3 do GIRUS.</p>
+              <p><a href="index.html">Voltar</a></p>
+          </body>
+          </html>
+          EOF
+          ```
+
+          ## Configurando o bucket para hospedar o site
+
+          ```bash
+          # Enviar os arquivos para o bucket
+          aws s3 cp ~/s3-website/ s3://$BUCKET_NAME/ --recursive
+          
+          # Configurar o bucket como site estático
+          aws s3 website s3://$BUCKET_NAME/ --index-document index.html --error-document index.html
+          
+          # Permitir acesso público de leitura
+          aws s3api put-bucket-policy --bucket $BUCKET_NAME --policy file://bucket-policy.json
+          
+          # URL do site
+          echo "http://$BUCKET_NAME.s3-website-$(aws configure get region).amazonaws.com"
+          ```
+
+      - title: "Conclusão e limpeza"
+        content: |
+          # Conclusão e limpeza
+
+          Neste laboratório, você aprendeu:
+
+          * Conceitos básicos do Amazon S3
+          * Criar buckets e gerenciar objetos
+          * Fazer upload e download de arquivos
+          * Configurar permissões e políticas
+          * Trabalhar com classes de armazenamento e regras de ciclo de vida
+          * Hospedar um site estático no S3
+
+          ## Limpeza dos recursos
+
+          Vamos remover todos os recursos criados para evitar cobranças:
+
+          ```bash
+          # Esvaziar o bucket principal (incluindo todas as versões)
+          aws s3api delete-objects \
+            --bucket $BUCKET_NAME \
+            --delete "$(aws s3api list-object-versions --bucket $BUCKET_NAME --output=json --query='{Objects: Versions[].{Key:Key,VersionId:VersionId}}')"
+          
+          # Esvaziar o bucket de backup
+          aws s3 rm s3://$BUCKET_BACKUP/ --recursive
+          
+          # Remover os buckets
+          aws s3 rb s3://$BUCKET_NAME
+          aws s3 rb s3://$BUCKET_BACKUP
+          
+          # Limpar arquivos locais
+          rm -rf ~/s3-lab ~/s3-downloads ~/s3-website
+          ```
+
+          ## Próximos passos
+
+          * Explore integrações do S3 com outros serviços AWS
+          * Aprenda sobre AWS CloudFront para CDN
+          * Explore outras soluções de armazenamento da AWS
+          * Aprofunde seus conhecimentos em segurança no S3
+          * Utilize o AWS SDK para interagir com o S3 programaticamente
+
+          ## Recursos adicionais
+
+          * [Documentação oficial do S3](https://docs.aws.amazon.com/s3/index.html)
+          * [AWS S3 FAQs](https://aws.amazon.com/s3/faqs/)
+          * [AWS S3 Best Practices](https://docs.aws.amazon.com/AmazonS3/latest/userguide/security-best-practices.html)

@@ -1,0 +1,670 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: terraform-aws-infraestrutura-lab
+  namespace: girus
+  labels:
+    app: girus-lab-template
+data:
+  lab.yaml: |
+    name: terraform-aws-infraestrutura
+    title: "Terraform com AWS: Construindo Infraestrutura em Nuvem"
+    description: "Aprenda a usar o Terraform para provisionar e gerenciar recursos na AWS, criando uma infraestrutura completa com recursos como VPC, EC2, RDS e S3."
+    duration: 30m
+    timerEnabled: true
+    maxDuration: 30m
+    image: "linuxtips/girus-localstack:0.1"
+    privileged: true
+    type: "aws"
+    entrypoint: "/entrypoint.sh"
+    tasks:
+      - name: "Instalando o Vim"
+        description: "Atualize os repositórios do sistema e instale o editor Vim"
+        steps:
+          - "Atualize os repositórios do sistema:"
+          - "`apt update`"
+          - "Instale o editor Vim:"
+          - "`apt install -y vim`"
+          - "Verifique se o Vim foi instalado corretamente:"
+          - "`vim --version | head -n 1`"
+        tips:
+          - type: "info"
+            title: "Comandos básicos do Vim"
+            content: "Para abrir um arquivo use 'vim arquivo.tf'. Para inserir texto, pressione 'i'. Para salvar e sair, pressione 'ESC' e digite ':wq'. Para sair sem salvar, pressione 'ESC' e digite ':q!'."
+        validation:
+          - command: "which vim > /dev/null && echo 'success' || echo 'error'"
+            expectedOutput: "success"
+            errorMessage: "O Vim não foi instalado corretamente. Tente executar 'apt install -y vim' novamente."
+
+      - name: "Configuração de rede com VPC e subnets"
+        description: "Aprenda a criar uma VPC e subnets para sua aplicação na AWS usando Terraform"
+        steps:
+          - "Crie um diretório para o projeto de infraestrutura:"
+          - "`mkdir -p ~/terraform-aws-infra && cd ~/terraform-aws-infra`"
+          - "Crie um arquivo para configuração de rede usando vim:"
+          - "`vim network.tf`"
+          - "No editor vim, pressione 'i' para entrar no modo de inserção e adicione o seguinte conteúdo:"
+          - "```terraform
+            # Configuração de rede na AWS
+
+            resource \"aws_vpc\" \"main\" {
+              cidr_block           = \"10.0.0.0/16\"
+              enable_dns_support   = true
+              enable_dns_hostnames = true
+
+              tags = {
+                Name = \"main-vpc\"
+              }
+            }
+
+            # Subnets públicas
+            resource \"aws_subnet\" \"public_a\" {
+              vpc_id                  = aws_vpc.main.id
+              cidr_block              = \"10.0.2.0/24\"
+              availability_zone       = \"us-east-1a\"
+              map_public_ip_on_launch = true
+
+              tags = {
+                Name = \"public-subnet-a\"
+              }
+            }
+
+            resource \"aws_subnet\" \"public_b\" {
+              vpc_id                  = aws_vpc.main.id
+              cidr_block              = \"10.0.2.0/24\"
+              availability_zone       = \"us-east-1b\"
+              map_public_ip_on_launch = true
+
+              tags = {
+                Name = \"public-subnet-b\"
+              }
+            }
+
+            # Subnets privadas
+            resource \"aws_subnet\" \"private_a\" {
+              vpc_id            = aws_vpc.main.id
+              cidr_block        = \"10.0.3.0/24\"
+              availability_zone = \"us-east-1a\"
+
+              tags = {
+                Name = \"private-subnet-a\"
+              }
+            }
+
+            resource \"aws_subnet\" \"private_b\" {
+              vpc_id            = aws_vpc.main.id
+              cidr_block        = \"10.0.4.0/24\"
+              availability_zone = \"us-east-1b\"
+
+              tags = {
+                Name = \"private-subnet-b\"
+              }
+            }
+
+            # Internet Gateway
+            resource \"aws_internet_gateway\" \"main\" {
+              vpc_id = aws_vpc.main.id
+
+              tags = {
+                Name = \"main-igw\"
+              }
+            }
+
+            # Tabela de roteamento para subnets públicas
+            resource \"aws_route_table\" \"public\" {
+              vpc_id = aws_vpc.main.id
+
+              route {
+                cidr_block = \"0.0.0.0/0\"
+                gateway_id = aws_internet_gateway.main.id
+              }
+
+              tags = {
+                Name = \"public-route-table\"
+              }
+            }
+
+            # Associação das subnets públicas com a tabela de rotas pública
+            resource \"aws_route_table_association\" \"public_a\" {
+              subnet_id      = aws_subnet.public_a.id
+              route_table_id = aws_route_table.public.id
+            }
+
+            resource \"aws_route_table_association\" \"public_b\" {
+              subnet_id      = aws_subnet.public_b.id
+              route_table_id = aws_route_table.public.id
+            }
+            ```"
+          - "Para salvar o arquivo e sair do vim, pressione 'ESC' e digite ':wq'"
+          - "Crie o arquivo principal do Terraform usando vim:"
+          - "`vim main.tf`"
+          - "No editor vim, pressione 'i' para entrar no modo de inserção e adicione o seguinte conteúdo:"
+          - "```terraform
+            terraform {
+              required_providers {
+                aws = {
+                  source  = \"hashicorp/aws\"
+                  version = \"~> 5.0\"
+                }
+              }
+            }
+
+            provider \"aws\" {
+              region = \"us-east-1\"
+            }
+            ```"
+          - "Para salvar o arquivo e sair do vim, pressione 'ESC' e digite ':wq'"
+          - "Inicialize o Terraform para baixar os providers necessários:"
+          - "`terraform init`"
+          - "Verifique o plano de execução para a rede:"
+          - "`terraform plan`"
+          - "Aplique a configuração para criar os recursos de rede:"
+          - "`terraform apply -auto-approve`"
+          - "Verifique os recursos criados:"
+          - "`terraform state list | grep aws_vpc`"
+          - "`terraform state list | grep aws_subnet`"
+        tips:
+          - type: "info"
+            title: "Rede na AWS"
+            content: "Uma VPC (Virtual Private Cloud) é a base para qualquer infraestrutura na AWS. Ela permite isolar recursos em uma rede virtual e organizar sua aplicação em diferentes camadas de acesso."
+          - type: "tip"
+            title: "Alta disponibilidade"
+            content: "Distribua suas subnets em diferentes zonas de disponibilidade (AZs) para garantir alta disponibilidade e resistência a falhas regionais."
+        validation:
+          - command: "terraform state list | grep aws_vpc.main && echo 'success' || echo 'error'"
+            expectedOutput: "success"
+            errorMessage: "A VPC não foi criada corretamente."
+          - command: "terraform state list | grep aws_subnet | wc -l | grep -q '[4-9]' && echo 'success' || echo 'error'"
+            expectedOutput: "success"
+            errorMessage: "As subnets não foram criadas corretamente. Devem existir pelo menos 4 subnets."
+
+      - name: "Criando grupos de segurança e instâncias EC2"
+        description: "Aprenda a configurar grupos de segurança e lançar instâncias EC2 para sua aplicação"
+        steps:
+          - "Crie um arquivo para os grupos de segurança usando vim:"
+          - "`vim security.tf`"
+          - "No editor vim, pressione 'i' para entrar no modo de inserção e adicione o seguinte conteúdo:"
+          - "```terraform
+            # Grupos de segurança
+
+            # SG para instâncias web públicas
+            resource \"aws_security_group\" \"web\" {
+              name        = \"web-sg\"
+              description = \"Permitir tráfego HTTP/HTTPS e SSH\"
+              vpc_id      = aws_vpc.main.id
+
+              ingress {
+                from_port   = 80
+                to_port     = 80
+                protocol    = \"tcp\"
+                cidr_blocks = [\"0.0.0.0/0\"]
+                description = \"Permitir HTTP\"
+              }
+
+              ingress {
+                from_port   = 443
+                to_port     = 443
+                protocol    = \"tcp\"
+                cidr_blocks = [\"0.0.0.0/0\"]
+                description = \"Permitir HTTPS\"
+              }
+
+              ingress {
+                from_port   = 22
+                to_port     = 22
+                protocol    = \"tcp\"
+                cidr_blocks = [\"0.0.0.0/0\"]
+                description = \"Permitir SSH\"
+              }
+
+              egress {
+                from_port   = 0
+                to_port     = 0
+                protocol    = \"-1\"
+                cidr_blocks = [\"0.0.0.0/0\"]
+                description = \"Permitir todo tráfego de saída\"
+              }
+
+              tags = {
+                Name = \"web-sg\"
+              }
+            }
+
+            # SG para banco de dados
+            resource \"aws_security_group\" \"db\" {
+              name        = \"db-sg\"
+              description = \"Permitir tráfego do banco de dados apenas das instâncias web\"
+              vpc_id      = aws_vpc.main.id
+
+              ingress {
+                from_port       = 3306
+                to_port         = 3306
+                protocol        = \"tcp\"
+                security_groups = [aws_security_group.web.id]
+                description     = \"Permitir MySQL das instâncias web\"
+              }
+
+              egress {
+                from_port   = 0
+                to_port     = 0
+                protocol    = \"-1\"
+                cidr_blocks = [\"0.0.0.0/0\"]
+                description = \"Permitir todo tráfego de saída\"
+              }
+
+              tags = {
+                Name = \"db-sg\"
+              }
+            }
+            ```"
+          - "Para salvar o arquivo e sair do vim, pressione 'ESC' e digite ':wq'"
+          - "Crie um arquivo para as instâncias EC2 usando vim:"
+          - "`vim compute.tf`"
+          - "No editor vim, pressione 'i' para entrar no modo de inserção e adicione o seguinte conteúdo:"
+          - "```terraform
+            # Instâncias EC2
+
+            # Chave SSH para acesso às instâncias
+            resource \"aws_key_pair\" \"deployer\" {
+              key_name   = \"deployer-key\"
+              public_key = \"ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQD3F6tyPEFEzV0LX3X8BsXdMsQz1x2cEikKDEY0aIj41qgxMCP/iteneqXSIFZBp5vizPvaoIR3Um9xK7PGoW8giupGn+EPuxIA4cDM4vzOqOkiMPhz5XK0whEjkVzTo4+S0puvDZuwIsdiW9mxhJc7tgBNL0cYlWSYVkz4G/fslNfRPW5mYAM49f4fhtxPb5ok4Q2Lg9dPKVHO/Bgeu5woMc7RY0p1ej6D4CKFE6lymSDJpW0YHX/wqE9+cfEauh7xZcG0q9t2ta6F6fmX0agvpFyZo8aFbXeUBr7osSCJNgvavWbM/06niWrOvYX2xwWdhXmXSrbX8ZbabVohBK41 exemplo@exemplo.com\"
+            }
+
+            # Instância EC2 para web
+            resource \"aws_instance\" \"web\" {
+              ami                    = \"ami-0c55b159cbfafe1f0\" # Amazon Linux 2 (exemplo)
+              instance_type          = \"t2.micro\"
+              key_name               = aws_key_pair.deployer.key_name
+              vpc_security_group_ids = [aws_security_group.web.id]
+              subnet_id              = aws_subnet.public_a.id
+
+              user_data = <<-EOF
+                          #!/bin/bash
+                          yum update -y
+                          yum install -y httpd
+                          systemctl start httpd
+                          systemctl enable httpd
+                          echo \"<h1>Olá do Terraform!</h1>\" > /var/www/html/index.html
+                          EOF
+
+              tags = {
+                Name = \"web-server\"
+              }
+            }
+
+            # Endereço IP elástico para instância web
+            resource \"aws_eip\" \"web\" {
+              instance = aws_instance.web.id
+              domain   = \"vpc\"
+
+              tags = {
+                Name = \"web-eip\"
+              }
+            }
+            ```"
+          - "Para salvar o arquivo e sair do vim, pressione 'ESC' e digite ':wq'"
+          - "Adicione outputs para informações importantes usando vim:"
+          - "`vim outputs.tf`"
+          - "No editor vim, pressione 'i' para entrar no modo de inserção e adicione o seguinte conteúdo:"
+          - "```terraform
+            output \"vpc_id\" {
+              description = \"ID da VPC criada\"
+              value       = aws_vpc.main.id
+            }
+
+            output \"web_instance_id\" {
+              description = \"ID da instância web\"
+              value       = aws_instance.web.id
+            }
+
+            output \"web_public_ip\" {
+              description = \"IP público da instância web\"
+              value       = aws_eip.web.public_ip
+            }
+
+            output \"web_url\" {
+              description = \"URL para acessar o servidor web\"
+              value       = \"http://${aws_eip.web.public_ip}\"
+            }
+            ```"
+          - "Para salvar o arquivo e sair do vim, pressione 'ESC' e digite ':wq'"
+          - "Aplique a configuração para criar os grupos de segurança e instâncias:"
+          - "`terraform apply -auto-approve`"
+          - "Verifique os outputs para obter informações sobre os recursos criados:"
+          - "`terraform output`"
+          - "Teste o acesso SSH à instância web (na prática, não vai funcionar no ambiente lab):"
+          - "`ssh -i /caminho/para/chave_privada ec2-user@$(terraform output -raw web_public_ip)`"
+        tips:
+          - type: "info"
+            title: "Grupos de Segurança"
+            content: "Os grupos de segurança funcionam como firewalls virtuais para instâncias EC2. Sempre siga o princípio de menor privilégio, abrindo apenas as portas necessárias."
+          - type: "warning"
+            title: "Chaves SSH"
+            content: "Em um ambiente real, nunca compartilhe chaves SSH nos arquivos Terraform. Use o key_pair como referência ou um gerenciador de segredos."
+        validation:
+          - command: "terraform state list | grep aws_security_group && echo 'success' || echo 'error'"
+            expectedOutput: "success"
+            errorMessage: "Os grupos de segurança não foram criados corretamente."
+          - command: "terraform state list | grep aws_instance.web && echo 'success' || echo 'error'"
+            expectedOutput: "success"
+            errorMessage: "A instância EC2 não foi criada corretamente."
+
+      - name: "Adicionando banco de dados RDS e armazenamento S3"
+        description: "Complete sua infraestrutura com serviços gerenciados: RDS para banco de dados e S3 para armazenamento"
+        steps:
+          - "Crie um arquivo para o banco de dados RDS usando vim:"
+          - "`vim database.tf`"
+          - "No editor vim, pressione 'i' para entrar no modo de inserção e adicione o seguinte conteúdo:"
+          - "```terraform
+            # Grupo de parâmetros para o RDS
+            resource \"aws_db_parameter_group\" \"mysql\" {
+              name   = \"mysql-parameters\"
+              family = \"mysql8.0\"
+
+              parameter {
+                name  = \"character_set_server\"
+                value = \"utf8\"
+              }
+
+              parameter {
+                name  = \"character_set_client\"
+                value = \"utf8\"
+              }
+            }
+
+            # Grupo de subnet para o RDS
+            resource \"aws_db_subnet_group\" \"mysql\" {
+              name       = \"mysql-subnet-group\"
+              subnet_ids = [aws_subnet.private_a.id, aws_subnet.private_b.id]
+
+              tags = {
+                Name = \"MySQL DB subnet group\"
+              }
+            }
+
+            # Instância RDS
+            resource \"aws_db_instance\" \"mysql\" {
+              allocated_storage      = 10
+              db_name                = \"applicationdb\"
+              engine                 = \"mysql\"
+              engine_version         = \"8.0\"
+              instance_class         = \"db.t3.micro\"
+              username               = \"admin\"
+              password               = \"senha12345\"
+              parameter_group_name   = aws_db_parameter_group.mysql.name
+              db_subnet_group_name   = aws_db_subnet_group.mysql.name
+              vpc_security_group_ids = [aws_security_group.db.id]
+              skip_final_snapshot    = true
+              multi_az               = false
+
+              tags = {
+                Name = \"mysql-instance\"
+              }
+            }
+            ```"
+          - "Para salvar o arquivo e sair do vim, pressione 'ESC' e digite ':wq'"
+          - "Crie um arquivo para bucket S3 usando vim:"
+          - "`vim storage.tf`"
+          - "No editor vim, pressione 'i' para entrar no modo de inserção e adicione o seguinte conteúdo:"
+          - "```terraform
+            # Bucket S3 para armazenamento
+            resource \"aws_s3_bucket\" \"app_storage\" {
+              bucket = \"app-storage-${random_string.bucket_suffix.result}\"
+
+              tags = {
+                Name = \"Application Storage\"
+              }
+            }
+
+            # Gerador de string aleatória para garantir nome único do bucket
+            resource \"random_string\" \"bucket_suffix\" {
+              length  = 8
+              special = false
+              upper   = false
+            }
+
+            # ACL do bucket
+            resource \"aws_s3_bucket_ownership_controls\" \"app_storage\" {
+              bucket = aws_s3_bucket.app_storage.id
+              rule {
+                object_ownership = \"BucketOwnerEnforced\"
+              }
+            }
+
+            # Política para tornar o bucket privado
+            resource \"aws_s3_bucket_public_access_block\" \"app_storage\" {
+              bucket = aws_s3_bucket.app_storage.id
+
+              block_public_acls       = true
+              block_public_policy     = true
+              ignore_public_acls      = true
+              restrict_public_buckets = true
+            }
+
+            # Habilitar versionamento de objetos
+            resource \"aws_s3_bucket_versioning\" \"app_storage\" {
+              bucket = aws_s3_bucket.app_storage.id
+              versioning_configuration {
+                status = \"Enabled\"
+              }
+            }
+            ```"
+          - "Para salvar o arquivo e sair do vim, pressione 'ESC' e digite ':wq'"
+          - "Atualize os outputs para incluir informações sobre o banco de dados e o bucket usando vim:"
+          - "`vim outputs.tf`"
+          - "No editor vim, pressione 'i' para entrar no modo de inserção, posicione o cursor no final do arquivo e adicione o seguinte conteúdo:"
+          - "```terraform
+
+            output \"db_endpoint\" {
+              description = \"Endpoint do banco de dados RDS\"
+              value       = aws_db_instance.mysql.endpoint
+            }
+
+            output \"s3_bucket_name\" {
+              description = \"Nome do bucket S3\"
+              value       = aws_s3_bucket.app_storage.bucket
+            }
+            ```"
+          - "Para salvar o arquivo e sair do vim, pressione 'ESC' e digite ':wq'"
+          - "Aplique a configuração para criar o banco de dados RDS e o bucket S3:"
+          - "`terraform apply -auto-approve`"
+          - "Verifique os outputs atualizados:"
+          - "`terraform output`"
+          - "Liste o conteúdo do bucket S3 (vazio inicialmente):"
+          - "`aws s3 ls s3://$(terraform output -raw s3_bucket_name)`"
+          - "Faça upload de um arquivo de teste para o bucket:"
+          - "Crie um arquivo de teste usando vim:"
+          - "`vim teste.txt`"
+          - "No editor vim, pressione 'i' para entrar no modo de inserção e adicione o seguinte conteúdo:"
+          - "```
+            Teste do Terraform
+            ```"
+          - "Para salvar o arquivo e sair do vim, pressione 'ESC' e digite ':wq'"
+          - "Envie o arquivo para o bucket S3:"
+          - "`aws s3 cp teste.txt s3://$(terraform output -raw s3_bucket_name)/`"
+          - "Verifique se o arquivo foi enviado ao bucket:"
+          - "`aws s3 ls s3://$(terraform output -raw s3_bucket_name)/`"
+        tips:
+          - type: "info"
+            title: "Serviços gerenciados"
+            content: "Sempre que possível, prefira serviços gerenciados como RDS e S3. Eles reduzem a sobrecarga operacional e geralmente oferecem melhor disponibilidade, segurança e desempenho."
+          - type: "warning"
+            title: "Senhas em texto claro"
+            content: "Em produção, nunca armazene senhas diretamente no código Terraform. Use variáveis, cofres de segredos como AWS Secrets Manager ou Hashicorp Vault."
+        validation:
+          - command: "terraform state list | grep aws_db_instance.mysql && echo 'success' || echo 'error'"
+            expectedOutput: "success"
+            errorMessage: "A instância RDS não foi criada corretamente."
+          - command: "terraform state list | grep aws_s3_bucket.app_storage && echo 'success' || echo 'error'"
+            expectedOutput: "success"
+            errorMessage: "O bucket S3 não foi criado corretamente."
+
+      - name: "Finalizando a infraestrutura e melhores práticas"
+        description: "Aprenda as melhores práticas para manter sua infraestrutura e prepare tudo para implantação"
+        steps:
+          - "Faça backup do estado do Terraform:"
+          - "`terraform state pull > terraform.tfstate.backup`"
+          - "Revise todos os recursos criados:"
+          - "`terraform state list`"
+          - "Crie um diagrama da infraestrutura (comando fictício, não funcionará no ambiente lab):"
+          - "`terraform graph | dot -Tpng > infraestrutura.png`"
+          - "Verifique se há melhorias a serem feitas na infraestrutura:"
+          - "`terraform validate`"
+          - "Crie um arquivo de variáveis para tornar a configuração mais flexível usando vim:"
+          - "`vim variables.tf`"
+          - "No editor vim, pressione 'i' para entrar no modo de inserção e adicione o seguinte conteúdo:"
+          - "```terraform
+            variable \"region\" {
+              description = \"Região da AWS para criar recursos\"
+              type        = string
+              default     = \"us-east-1\"
+            }
+
+            variable \"vpc_cidr\" {
+              description = \"CIDR da VPC\"
+              type        = string
+              default     = \"10.0.0.0/16\"
+            }
+
+            variable \"environment\" {
+              description = \"Ambiente (dev, staging, prod)\"
+              type        = string
+              default     = \"dev\"
+            }
+
+            variable \"instance_type\" {
+              description = \"Tipo de instância EC2\"
+              type        = string
+              default     = \"t2.micro\"
+            }
+
+            variable \"db_instance_class\" {
+              description = \"Classe da instância RDS\"
+              type        = string
+              default     = \"db.t3.micro\"
+            }
+
+            variable \"db_name\" {
+              description = \"Nome do banco de dados\"
+              type        = string
+              default     = \"applicationdb\"
+            }
+
+            variable \"db_username\" {
+              description = \"Usuário do banco de dados\"
+              type        = string
+              default     = \"admin\"
+            }
+
+            variable \"db_password\" {
+              description = \"Senha do banco de dados\"
+              type        = string
+              default     = \"senha12345\"
+              sensitive   = true
+            }
+            ```"
+          - "Para salvar o arquivo e sair do vim, pressione 'ESC' e digite ':wq'"
+          - "Atualize o arquivo main.tf para usar variáveis usando vim:"
+          - "`vim main.tf`"
+          - "No editor vim, pressione 'i' para entrar no modo de inserção e substitua o conteúdo pelo seguinte:"
+          - "```terraform
+            terraform {
+              required_providers {
+                aws = {
+                  source  = \"hashicorp/aws\"
+                  version = \"~> 5.0\"
+                }
+              }
+              
+              # Em um ambiente real, é recomendado configurar um backend remoto
+              # backend \"s3\" {
+              #   bucket         = \"terraform-state-bucket\"
+              #   key            = \"terraform.tfstate\"
+              #   region         = \"us-east-1\"
+              #   dynamodb_table = \"terraform-locks\"
+              #   encrypt        = true
+              # }
+            }
+
+            provider \"aws\" {
+              region = var.region
+              
+              default_tags {
+                tags = {
+                  Environment = var.environment
+                  Terraform   = \"true\"
+                  Project     = \"AWS Infrastructure Demo\"
+                }
+              }
+            }
+            ```"
+          - "Para salvar o arquivo e sair do vim, pressione 'ESC' e digite ':wq'"
+          - "Atualize os recursos para usar as variáveis:"
+          - "`terraform validate`"
+          - "Para automatizar a implantação de sua aplicação, crie um arquivo de outputs para o GitLab CI/CD (exemplo) usando vim:"
+          - "`vim gitlab-ci-variables.tf`"
+          - "No editor vim, pressione 'i' para entrar no modo de inserção e adicione o seguinte conteúdo:"
+          - "```terraform
+            # Este arquivo exporta outputs úteis para CI/CD
+            resource \"local_file\" \"gitlab_ci_variables\" {
+              content  = <<-EOT
+                # Variáveis geradas automaticamente pelo Terraform
+                WEB_SERVER_IP=${aws_eip.web.public_ip}
+                DB_ENDPOINT=${aws_db_instance.mysql.endpoint}
+                S3_BUCKET=${aws_s3_bucket.app_storage.bucket}
+                VPC_ID=${aws_vpc.main.id}
+              EOT
+              filename = \"${path.module}/gitlab-variables.env\"
+            }
+            ```"
+          - "Para salvar o arquivo e sair do vim, pressione 'ESC' e digite ':wq'"
+          - "Crie um Makefile para simplificar operações usando vim:"
+          - "`vim Makefile`"
+          - "No editor vim, pressione 'i' para entrar no modo de inserção e adicione o seguinte conteúdo:"
+          - "```makefile
+            .PHONY: init plan apply destroy clean format validate
+
+            init:
+            	terraform init
+
+            plan:
+            	terraform plan
+
+            apply:
+            	terraform apply -auto-approve
+
+            destroy:
+            	terraform destroy -auto-approve
+
+            clean:
+            	rm -rf .terraform/ terraform.tfstate* .terraform.lock.hcl gitlab-variables.env
+
+            format:
+            	terraform fmt -recursive
+
+            validate:
+            	terraform validate
+
+            output:
+            	terraform output
+            ```"
+          - "Para salvar o arquivo e sair do vim, pressione 'ESC' e digite ':wq'"
+          - "Verifique se há quaisquer problemas de segurança (comando fictício):"
+          - "`terraform fmt -check -recursive`"
+        tips:
+          - type: "info"
+            title: "Backend remoto"
+            content: "Em um ambiente de produção, utilize um backend remoto como S3 + DynamoDB para armazenar o estado. Isso facilita o trabalho em equipe e melhora a segurança."
+          - type: "warning"
+            title: "Variáveis sensíveis"
+            content: "Marque variáveis sensíveis como sensitive = true no Terraform. Isso evitará que seus valores sejam exibidos em outputs e logs."
+          - type: "tip"
+            title: "Automação"
+            content: "Integre o Terraform a pipelines de CI/CD para automação completa. Ferramentas como Atlantis ou Terraform Cloud também podem ajudar no fluxo de aprovação e aplicação."
+        validation:
+          - command: "terraform validate && echo 'success' || echo 'error'"
+            expectedOutput: "success"
+            errorMessage: "A configuração do Terraform não é válida. Verifique sua sintaxe."
+          - command: "ls -la Makefile gitlab-variables.env && echo 'success' || echo 'error'"
+            expectedOutput: "success"
+            errorMessage: "Os arquivos de automação não foram criados corretamente."

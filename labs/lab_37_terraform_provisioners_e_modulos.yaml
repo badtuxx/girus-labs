@@ -1,0 +1,602 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: terraform-provisioners-modulos-lab
+  namespace: girus
+  labels:
+    app: girus-lab-template
+data:
+  lab.yaml: |
+    name: terraform-provisioners-modulos
+    title: "Terraform: Provisioners e Módulos"
+    description: "Aprenda a utilizar provisioners para configuração de recursos após sua criação e organize seu código Terraform com módulos reutilizáveis."
+    duration: 25m
+    image: "linuxtips/girus-localstack:0.1"
+    privileged: true
+    type: "terraform"
+    entrypoint: "/entrypoint.sh"
+    tasks:
+      - name: "Instalando o Vim"
+        description: "Atualize os repositórios do sistema e instale o editor Vim"
+        steps:
+          - "Atualize os repositórios do sistema:"
+          - "`apt update`"
+          - "Instale o editor Vim:"
+          - "`apt install -y vim`"
+          - "Verifique se o Vim foi instalado corretamente:"
+          - "`vim --version | head -n 1`"
+        tips:
+          - type: "info"
+            title: "Comandos básicos do Vim"
+            content: "Para abrir um arquivo use 'vim arquivo.tf'. Para inserir texto, pressione 'i'. Para salvar e sair, pressione 'ESC' e digite ':wq'. Para sair sem salvar, pressione 'ESC' e digite ':q!'."
+        validation:
+          - command: "which vim > /dev/null && echo 'success' || echo 'error'"
+            expectedOutput: "success"
+            errorMessage: "O Vim não foi instalado corretamente. Tente executar 'apt install -y vim' novamente."
+
+      - name: "Utilizando Provisioners para configuração local"
+        description: "Aprenda como utilizar provisioners para executar comandos locais e criar arquivos após a criação de recursos"
+        steps:
+          - "Crie um diretório para o projeto:"
+          - "`mkdir -p ~/terraform-provisioners && cd ~/terraform-provisioners`"
+          - "Crie o arquivo principal do Terraform usando vim:"
+          - "`vim main.tf`"
+          - "No editor vim, pressione 'i' para entrar no modo de inserção e adicione o seguinte conteúdo:"
+          - "```terraform
+            terraform {
+              required_providers {
+                aws = {
+                  source  = \"hashicorp/aws\"
+                  version = \"~> 5.0\"
+                }
+              }
+            }
+
+            provider \"aws\" {
+              region = \"us-east-1\"
+            }
+
+            # Recurso de bucket S3 com provisioner local-exec
+            resource \"aws_s3_bucket\" \"log_bucket\" {
+              bucket = \"terraform-logs-${uuid()}\"
+
+              tags = {
+                Name        = \"Log Bucket\"
+                Environment = \"Dev\"
+              }
+
+              # Executado quando o bucket é criado
+              provisioner \"local-exec\" {
+                command = \"echo 'Bucket ${self.bucket} criado em ${timestamp()}' > bucket_info.txt\"
+              }
+
+              # Executado quando o bucket é destruído
+              provisioner \"local-exec\" {
+                when    = destroy
+                command = \"echo 'Bucket ${self.bucket} está sendo destruído' > bucket_destruido.txt\"
+              }
+            }
+
+            # Recurso de arquivo local
+            resource \"local_file\" \"bucket_details\" {
+              content  = \"Informações do bucket:\\nNome: ${aws_s3_bucket.log_bucket.bucket}\\nARN: ${aws_s3_bucket.log_bucket.arn}\"
+              filename = \"${path.module}/bucket_details.txt\"
+            }
+            ```"
+          - "Para salvar o arquivo e sair do vim, pressione 'ESC' e digite ':wq'"
+          - "Inicialize o Terraform:"
+          - "`terraform init`"
+          - "Verifique o plano de execução:"
+          - "`terraform plan`"
+          - "Aplique a configuração:"
+          - "`terraform apply -auto-approve`"
+          - "Verifique os arquivos criados pelo provisioner e pelo recurso local_file:"
+          - "`ls -la *.txt`"
+          - "Examine o conteúdo do arquivo bucket_info.txt:"
+          - "`cat bucket_info.txt`"
+          - "Examine o conteúdo do arquivo bucket_details.txt:"
+          - "`cat bucket_details.txt`"
+        tips:
+          - type: "info"
+            title: "Tipos de Provisioners"
+            content: "O Terraform suporta vários tipos de provisioners, incluindo 'local-exec' para executar comandos na máquina local, 'remote-exec' para executar comandos em recursos remotos, e 'file' para copiar arquivos."
+          - type: "warning"
+            title: "Uso cauteloso de provisioners"
+            content: "Os provisioners devem ser usados com cautela, pois são considerados um último recurso no Terraform. Sempre que possível, prefira recursos nativos ou configuração baseada em imagens."
+        validation:
+          - command: "test -f bucket_info.txt && echo 'success' || echo 'error'"
+            expectedOutput: "success"
+            errorMessage: "O arquivo bucket_info.txt não foi criado pelo provisioner local-exec."
+          - command: "test -f bucket_details.txt && echo 'success' || echo 'error'"
+            expectedOutput: "success"
+            errorMessage: "O arquivo bucket_details.txt não foi criado pelo recurso local_file."
+
+      - name: "Implementando Provisioners Remote-exec"
+        description: "Utilize provisioners remote-exec para configurar recursos remotos após sua criação"
+        steps:
+          - "Crie um novo diretório para esta etapa:"
+          - "`mkdir -p ~/terraform-remote-exec && cd ~/terraform-remote-exec`"
+          - "Crie um arquivo para a chave SSH:"
+          - "`vim ssh_key.tf`"
+          - "No editor vim, pressione 'i' para entrar no modo de inserção e adicione o seguinte conteúdo:"
+          - "```terraform
+            resource \"tls_private_key\" \"example\" {
+              algorithm = \"RSA\"
+              rsa_bits  = 4096
+            }
+
+            resource \"local_file\" \"private_key\" {
+              content  = tls_private_key.example.private_key_pem
+              filename = \"${path.module}/id_rsa\"
+
+              provisioner \"local-exec\" {
+                command = \"chmod 600 ${path.module}/id_rsa\"
+              }
+            }
+
+            resource \"local_file\" \"public_key\" {
+              content  = tls_private_key.example.public_key_openssh
+              filename = \"${path.module}/id_rsa.pub\"
+            }
+
+            resource \"aws_key_pair\" \"example\" {
+              key_name   = \"terraform-example-key\"
+              public_key = tls_private_key.example.public_key_openssh
+            }
+            ```"
+          - "Para salvar o arquivo e sair do vim, pressione 'ESC' e digite ':wq'"
+          - "Agora, crie o arquivo para a instância EC2:"
+          - "`vim ec2_instance.tf`"
+          - "No editor vim, pressione 'i' para entrar no modo de inserção e adicione o seguinte conteúdo:"
+          - "```terraform
+            terraform {
+              required_providers {
+                aws = {
+                  source  = \"hashicorp/aws\"
+                  version = \"~> 5.0\"
+                }
+                tls = {
+                  source  = \"hashicorp/tls\"
+                  version = \"~> 4.0\"
+                }
+              }
+            }
+
+            provider \"aws\" {
+              region = \"us-east-1\"
+            }
+
+            resource \"aws_security_group\" \"example\" {
+              name        = \"terraform-example-sg\"
+              description = \"Allow SSH and HTTP\"
+
+              ingress {
+                description = \"SSH\"
+                from_port   = 22
+                to_port     = 22
+                protocol    = \"tcp\"
+                cidr_blocks = [\"0.0.0.0/0\"]
+              }
+
+              ingress {
+                description = \"HTTP\"
+                from_port   = 80
+                to_port     = 80
+                protocol    = \"tcp\"
+                cidr_blocks = [\"0.0.0.0/0\"]
+              }
+
+              egress {
+                from_port   = 0
+                to_port     = 0
+                protocol    = \"-1\"
+                cidr_blocks = [\"0.0.0.0/0\"]
+              }
+            }
+
+            resource \"aws_instance\" \"example\" {
+              ami                    = \"ami-0c55b159cbfafe1f0\"  # Amazon Linux 2
+              instance_type          = \"t2.micro\"
+              key_name               = aws_key_pair.example.key_name
+              vpc_security_group_ids = [aws_security_group.example.id]
+
+              tags = {
+                Name = \"terraform-example-instance\"
+              }
+
+              # Usar connection e provisioner remote-exec
+              connection {
+                type        = \"ssh\"
+                user        = \"ec2-user\"
+                private_key = tls_private_key.example.private_key_pem
+                host        = self.public_ip
+              }
+
+              provisioner \"remote-exec\" {
+                inline = [
+                  \"sudo yum update -y\",
+                  \"sudo yum install -y httpd\",
+                  \"sudo systemctl start httpd\",
+                  \"sudo systemctl enable httpd\",
+                  \"echo '<h1>Configurado via Terraform Remote-exec Provisioner</h1>' | sudo tee /var/www/html/index.html\",
+                ]
+              }
+            }
+
+            output \"instance_public_ip\" {
+              description = \"IP público da instância\"
+              value       = aws_instance.example.public_ip
+            }
+            ```"
+          - "Para salvar o arquivo e sair do vim, pressione 'ESC' e digite ':wq'"
+          - "Inicialize o Terraform:"
+          - "`terraform init`"
+          - "Verifique o plano de execução (Obs: em ambiente de lab, não podemos realmente criar instâncias EC2):"
+          - "`terraform plan`"
+          - "Neste ponto, em um ambiente AWS real, você aplicaria a configuração e poderia acessar o servidor web."
+        tips:
+          - type: "info"
+            title: "Connection block"
+            content: "O bloco 'connection' configura como o Terraform se conectará ao recurso remoto. É necessário para provisioners remote-exec."
+          - type: "warning"
+            title: "Alternativas a provisioners"
+            content: "Considere alternativas como user_data para EC2, cloud-init, ou ferramentas de gerenciamento de configuração como Ansible ao invés de provisioners remote-exec."
+        validation:
+          - command: "test -f ssh_key.tf && echo 'success' || echo 'error'"
+            expectedOutput: "success"
+            errorMessage: "O arquivo ssh_key.tf não foi criado corretamente."
+          - command: "test -f ec2_instance.tf && echo 'success' || echo 'error'"
+            expectedOutput: "success"
+            errorMessage: "O arquivo ec2_instance.tf não foi criado corretamente."
+
+      - name: "Criando e utilizando módulos Terraform"
+        description: "Aprenda a organizar seu código Terraform em módulos reutilizáveis"
+        steps:
+          - "Crie um diretório para o projeto com módulos:"
+          - "`mkdir -p ~/terraform-modulos && cd ~/terraform-modulos`"
+          - "Crie a estrutura de diretórios para os módulos:"
+          - "`mkdir -p modules/s3 modules/vpc`"
+          - "Crie o arquivo principal do módulo S3:"
+          - "`vim modules/s3/main.tf`"
+          - "No editor vim, pressione 'i' para entrar no modo de inserção e adicione o seguinte conteúdo:"
+          - "```terraform
+            resource \"aws_s3_bucket\" \"this\" {
+              bucket = var.bucket_name
+
+              tags = var.tags
+            }
+
+            resource \"aws_s3_bucket_versioning\" \"this\" {
+              bucket = aws_s3_bucket.this.id
+              
+              versioning_configuration {
+                status = var.versioning_enabled ? \"Enabled\" : \"Disabled\"
+              }
+            }
+
+            resource \"aws_s3_bucket_public_access_block\" \"this\" {
+              bucket = aws_s3_bucket.this.id
+
+              block_public_acls       = true
+              block_public_policy     = true
+              ignore_public_acls      = true
+              restrict_public_buckets = true
+            }
+            ```"
+          - "Para salvar o arquivo e sair do vim, pressione 'ESC' e digite ':wq'"
+          - "Crie o arquivo de variáveis para o módulo S3:"
+          - "`vim modules/s3/variables.tf`"
+          - "No editor vim, pressione 'i' para entrar no modo de inserção e adicione o seguinte conteúdo:"
+          - "```terraform
+            variable \"bucket_name\" {
+              description = \"Nome do bucket S3\"
+              type        = string
+            }
+
+            variable \"versioning_enabled\" {
+              description = \"Habilitar ou não o versionamento de objetos\"
+              type        = bool
+              default     = false
+            }
+
+            variable \"tags\" {
+              description = \"Tags a serem aplicadas ao bucket\"
+              type        = map(string)
+              default     = {}
+            }
+            ```"
+          - "Para salvar o arquivo e sair do vim, pressione 'ESC' e digite ':wq'"
+          - "Crie o arquivo de outputs para o módulo S3:"
+          - "`vim modules/s3/outputs.tf`"
+          - "No editor vim, pressione 'i' para entrar no modo de inserção e adicione o seguinte conteúdo:"
+          - "```terraform
+            output \"bucket_id\" {
+              description = \"ID do bucket S3\"
+              value       = aws_s3_bucket.this.id
+            }
+
+            output \"bucket_arn\" {
+              description = \"ARN do bucket S3\"
+              value       = aws_s3_bucket.this.arn
+            }
+
+            output \"bucket_domain_name\" {
+              description = \"Nome de domínio do bucket S3\"
+              value       = aws_s3_bucket.this.bucket_domain_name
+            }
+            ```"
+          - "Para salvar o arquivo e sair do vim, pressione 'ESC' e digite ':wq'"
+          - "Agora, crie o arquivo principal do módulo VPC:"
+          - "`vim modules/vpc/main.tf`"
+          - "No editor vim, pressione 'i' para entrar no modo de inserção e adicione o seguinte conteúdo:"
+          - "```terraform
+            resource \"aws_vpc\" \"this\" {
+              cidr_block           = var.vpc_cidr
+              enable_dns_support   = true
+              enable_dns_hostnames = true
+
+              tags = merge(
+                {
+                  \"Name\" = var.vpc_name
+                },
+                var.tags
+              )
+            }
+
+            resource \"aws_subnet\" \"public\" {
+              count = length(var.public_subnets)
+
+              vpc_id                  = aws_vpc.this.id
+              cidr_block              = var.public_subnets[count.index]
+              availability_zone       = var.azs[count.index % length(var.azs)]
+              map_public_ip_on_launch = true
+
+              tags = merge(
+                {
+                  \"Name\" = \"${var.vpc_name}-public-${count.index}\"
+                },
+                var.tags
+              )
+            }
+
+            resource \"aws_subnet\" \"private\" {
+              count = length(var.private_subnets)
+
+              vpc_id            = aws_vpc.this.id
+              cidr_block        = var.private_subnets[count.index]
+              availability_zone = var.azs[count.index % length(var.azs)]
+
+              tags = merge(
+                {
+                  \"Name\" = \"${var.vpc_name}-private-${count.index}\"
+                },
+                var.tags
+              )
+            }
+
+            resource \"aws_internet_gateway\" \"this\" {
+              vpc_id = aws_vpc.this.id
+
+              tags = merge(
+                {
+                  \"Name\" = \"${var.vpc_name}-igw\"
+                },
+                var.tags
+              )
+            }
+
+            resource \"aws_route_table\" \"public\" {
+              vpc_id = aws_vpc.this.id
+
+              route {
+                cidr_block = \"0.0.0.0/0\"
+                gateway_id = aws_internet_gateway.this.id
+              }
+
+              tags = merge(
+                {
+                  \"Name\" = \"${var.vpc_name}-public-rt\"
+                },
+                var.tags
+              )
+            }
+
+            resource \"aws_route_table_association\" \"public\" {
+              count = length(aws_subnet.public)
+
+              subnet_id      = aws_subnet.public[count.index].id
+              route_table_id = aws_route_table.public.id
+            }
+            ```"
+          - "Para salvar o arquivo e sair do vim, pressione 'ESC' e digite ':wq'"
+          - "Crie o arquivo de variáveis para o módulo VPC:"
+          - "`vim modules/vpc/variables.tf`"
+          - "No editor vim, pressione 'i' para entrar no modo de inserção e adicione o seguinte conteúdo:"
+          - "```terraform
+            variable \"vpc_name\" {
+              description = \"Nome da VPC\"
+              type        = string
+            }
+
+            variable \"vpc_cidr\" {
+              description = \"CIDR block para a VPC\"
+              type        = string
+              default     = \"10.0.0.0/16\"
+            }
+
+            variable \"azs\" {
+              description = \"Zonas de disponibilidade\"
+              type        = list(string)
+              default     = [\"us-east-1a\", \"us-east-1b\"]
+            }
+
+            variable \"public_subnets\" {
+              description = \"Lista de CIDRs para subnets públicas\"
+              type        = list(string)
+              default     = []
+            }
+
+            variable \"private_subnets\" {
+              description = \"Lista de CIDRs para subnets privadas\"
+              type        = list(string)
+              default     = []
+            }
+
+            variable \"tags\" {
+              description = \"Tags a serem aplicadas aos recursos\"
+              type        = map(string)
+              default     = {}
+            }
+            ```"
+          - "Para salvar o arquivo e sair do vim, pressione 'ESC' e digite ':wq'"
+          - "Crie o arquivo de outputs para o módulo VPC:"
+          - "`vim modules/vpc/outputs.tf`"
+          - "No editor vim, pressione 'i' para entrar no modo de inserção e adicione o seguinte conteúdo:"
+          - "```terraform
+            output \"vpc_id\" {
+              description = \"ID da VPC\"
+              value       = aws_vpc.this.id
+            }
+
+            output \"vpc_cidr\" {
+              description = \"CIDR da VPC\"
+              value       = aws_vpc.this.cidr_block
+            }
+
+            output \"public_subnet_ids\" {
+              description = \"IDs das subnets públicas\"
+              value       = aws_subnet.public[*].id
+            }
+
+            output \"private_subnet_ids\" {
+              description = \"IDs das subnets privadas\"
+              value       = aws_subnet.private[*].id
+            }
+            ```"
+          - "Para salvar o arquivo e sair do vim, pressione 'ESC' e digite ':wq'"
+          - "Agora crie o arquivo principal que utilizará os módulos:"
+          - "`vim main.tf`"
+          - "No editor vim, pressione 'i' para entrar no modo de inserção e adicione o seguinte conteúdo:"
+          - "```terraform
+            terraform {
+              required_providers {
+                aws = {
+                  source  = \"hashicorp/aws\"
+                  version = \"~> 5.0\"
+                }
+              }
+            }
+
+            provider \"aws\" {
+              region = \"us-east-1\"
+            }
+
+            locals {
+              environment = \"dev\"
+              project     = \"demo-modulos\"
+              
+              tags = {
+                Environment = local.environment
+                Project     = local.project
+                ManagedBy   = \"Terraform\"
+              }
+            }
+
+            module \"vpc\" {
+              source = \"./modules/vpc\"
+
+              vpc_name       = \"${local.project}-vpc\"
+              vpc_cidr       = \"10.0.0.0/16\"
+              public_subnets  = [\"10.0.2.0/24\", \"10.0.2.0/24\"]
+              private_subnets = [\"10.0.3.0/24\", \"10.0.4.0/24\"]
+              
+              tags = local.tags
+            }
+
+            module \"logs_bucket\" {
+              source = \"./modules/s3\"
+
+              bucket_name        = \"${local.project}-logs-${random_string.suffix.result}\"
+              versioning_enabled = true
+              
+              tags = merge(
+                local.tags,
+                {
+                  Type = \"Logs\"
+                }
+              )
+            }
+
+            module \"data_bucket\" {
+              source = \"./modules/s3\"
+
+              bucket_name        = \"${local.project}-data-${random_string.suffix.result}\"
+              versioning_enabled = false
+              
+              tags = merge(
+                local.tags,
+                {
+                  Type = \"Data\"
+                }
+              )
+            }
+
+            resource \"random_string\" \"suffix\" {
+              length  = 8
+              special = false
+              upper   = false
+            }
+            ```"
+          - "Para salvar o arquivo e sair do vim, pressione 'ESC' e digite ':wq'"
+          - "Crie o arquivo de outputs:"
+          - "`vim outputs.tf`"
+          - "No editor vim, pressione 'i' para entrar no modo de inserção e adicione o seguinte conteúdo:"
+          - "```terraform
+            output \"vpc_id\" {
+              description = \"ID da VPC criada\"
+              value       = module.vpc.vpc_id
+            }
+
+            output \"vpc_cidr\" {
+              description = \"CIDR da VPC\"
+              value       = module.vpc.vpc_cidr
+            }
+
+            output \"public_subnet_ids\" {
+              description = \"IDs das subnets públicas\"
+              value       = module.vpc.public_subnet_ids
+            }
+
+            output \"logs_bucket_name\" {
+              description = \"Nome do bucket de logs\"
+              value       = module.logs_bucket.bucket_id
+            }
+
+            output \"data_bucket_name\" {
+              description = \"Nome do bucket de dados\"
+              value       = module.data_bucket.bucket_id
+            }
+            ```"
+          - "Para salvar o arquivo e sair do vim, pressione 'ESC' e digite ':wq'"
+          - "Inicialize o Terraform:"
+          - "`terraform init`"
+          - "Verifique o plano de execução:"
+          - "`terraform plan`"
+          - "Aplique a configuração:"
+          - "`terraform apply -auto-approve`"
+          - "Veja os outputs para obter informações sobre os recursos criados:"
+          - "`terraform output`"
+        tips:
+          - type: "info"
+            title: "Estrutura de Módulos"
+            content: "Um módulo bem projetado tem três partes principais: main.tf (recursos principais), variables.tf (entrada) e outputs.tf (saída). Isso permite reutilização e encapsulamento."
+          - type: "tip"
+            title: "Módulos Públicos"
+            content: "O Terraform Registry (registry.terraform.io) oferece módulos comunitários prontos para uso. Eles podem acelerar o desenvolvimento, mas sempre revise o código antes de usar."
+        validation:
+          - command: "test -d modules/s3 -a -d modules/vpc && echo 'success' || echo 'error'"
+            expectedOutput: "success"
+            errorMessage: "A estrutura de diretórios de módulos não foi criada corretamente."
+          - command: "terraform state list | grep -q module.vpc && terraform state list | grep -q module.logs_bucket && echo 'success' || echo 'error'"
+            expectedOutput: "success"
+            errorMessage: "Os módulos não foram aplicados corretamente. Verifique se executou 'terraform apply'."

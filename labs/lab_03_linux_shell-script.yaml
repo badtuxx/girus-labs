@@ -1,0 +1,412 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: linux-shell-script-lab
+  namespace: girus
+  labels:
+    app: girus-lab-template
+data:
+  lab.yaml: |
+    name: linux-shell-script
+    title: "Introdução ao Shell Script Bash"
+    description: "Crie seus primeiros scripts Bash, aprendendo sobre variáveis, loops e condicionais neste laboratório detalhado e guiado. Ideal para iniciantes que querem dominar os conceitos básicos de automação no Linux."
+    duration: 25m
+    image: "linuxtips/girus-devops:0.1"
+    tasks:
+      - name: "Criando e Executando um Script Simples"
+        description: "Aprenda a estrutura básica de um script Bash, como criar, salvar e executar scripts, e entenda os componentes fundamentais que todo script deve ter."
+        steps:
+          - "O shell script é uma poderosa ferramenta para automatizar tarefas no Linux. Vamos criar nosso primeiro script seguindo estes passos:"
+          - "Primeiro, crie um arquivo chamado 'meu_script.sh':"
+          - "`touch meu_script.sh`"
+          - "Agora, vamos usar o editor nano para escrever o script (é mais amigável para iniciantes):"
+          - "`nano meu_script.sh`"
+          - "No editor, digite o seguinte conteúdo (linha por linha):"
+          - |
+            ```bash
+            #!/bin/bash
+            # Este é um comentário
+            # Os comentários não são executados e servem para documentar o código
+
+            # Comando para exibir uma mensagem na tela
+            echo "Olá, Girus!"
+            
+            # Comando com substituição de comando $(comando)
+            echo "O diretório atual é: $(pwd)"
+            
+            # Exibindo a data e hora atual
+            echo "Data e hora atual: $(date)"
+            ```
+          - "Depois de digitar o conteúdo, salve o arquivo pressionando Ctrl+O, depois Enter, e saia do editor com Ctrl+X."
+          - "Se preferir usar outro editor como vim ou não quiser usar um editor interativo, você também pode criar o arquivo com o comando cat:"
+          - |
+            cat > meu_script.sh << 'EOF'
+            #!/bin/bash
+            # Este é um comentário
+            # Os comentários não são executados e servem para documentar o código
+
+            # Comando para exibir uma mensagem na tela
+            echo "Olá, Girus!"
+
+            # Comando com substituição de comando $(comando)
+            echo "O diretório atual é: $(pwd)"
+
+            # Exibindo a data e hora atual
+            echo "Data e hora atual: $(date)"
+            EOF
+          - "Agora, vamos verificar o conteúdo do script para confirmar que foi criado corretamente:"
+          - "`cat meu_script.sh`"
+          - "Por padrão, os arquivos novos não têm permissão de execução. Vamos tornar o script executável:"
+          - "`chmod +x meu_script.sh`"
+          - "Podemos verificar as permissões do arquivo com o comando:"
+          - "`ls -l meu_script.sh`"
+          - "Você deve ver algo como '-rwxr-xr-x', onde os 'x' indicam permissão de execução."
+          - "Agora execute o script:"
+          - "`./meu_script.sh`"
+          - "O './' antes do nome do arquivo indica que queremos executar o arquivo no diretório atual."
+          - "Você deve ver a mensagem 'Olá, Girus!', seguida do diretório atual e da data/hora."
+        tips:
+          - type: "info"
+            title: "Shebang (#! /bin/bash)"
+            content: "A primeira linha `#!/bin/bash` é chamada de 'shebang' e indica ao sistema qual interpretador usar para executar o script. Embora opcional, é uma boa prática sempre incluí-la para garantir que o script seja interpretado pelo bash, mesmo se executado em diferentes ambientes."
+          - type: "tip"
+            title: "Permissão de Execução"
+            content: "Arquivos de script precisam da permissão de execução ('x') para serem rodados diretamente com `./nome_script.sh`. Use `chmod +x` para adicioná-la. Alternativamente, você pode executar o script com `bash meu_script.sh`, o que não requer permissão de execução."
+          - type: "info"
+            title: "Substituição de Comando"
+            content: "A sintaxe $(comando) é chamada de 'substituição de comando' e permite incluir a saída de um comando dentro de outro comando ou string. Uma sintaxe mais antiga é usar crases: `comando`."
+        validation:
+          - command: "./meu_script.sh | grep 'Olá, Girus!'"
+            expectedOutput: "Olá, Girus!"
+            errorMessage: "O script não produziu a saída esperada 'Olá, Girus!'. Verifique se você criou o arquivo corretamente e se ele tem permissão de execução."
+
+      - name: "Usando Variáveis e Argumentos"
+        description: "Aprenda a declarar e usar variáveis em scripts Bash, além de acessar e processar argumentos de linha de comando passados para o script."
+        steps:
+          - "As variáveis permitem armazenar e reutilizar valores no script. Os argumentos são valores passados ao script quando ele é executado."
+          - "Vamos modificar nosso script 'meu_script.sh' para usar variáveis e argumentos. Abra o arquivo com o editor:"
+          - "`nano meu_script.sh`"
+          - "Substitua o conteúdo existente pelo seguinte:"
+          - |
+            ```bash
+            #!/bin/bash
+            
+            # Declaração de variáveis (sem espaços ao redor do sinal de igual)
+            NOME="Aluno Girus"
+            CURSO="Shell Script"
+            DATA_ATUAL=$(date +"%d/%m/%Y")
+            
+            # Usando as variáveis
+            echo "Olá, $NOME!"
+            echo "Bem-vindo ao curso de $CURSO"
+            echo "Hoje é: $DATA_ATUAL"
+            
+            # Trabalhando com argumentos de linha de comando
+            echo "----------------------------"
+            echo "Informações sobre argumentos:"
+            echo "----------------------------"
+            echo "O script foi chamado com $# argumento(s)."
+            echo "O nome do script é: $0"
+            echo "O primeiro argumento foi: $1"
+            echo "O segundo argumento foi: $2"
+            echo "Todos os argumentos: $@"
+            
+            # Capturando o valor de um argumento em uma variável
+            ARGUMENTO1=$1
+            echo "----------------------------"
+            echo "O valor de ARGUMENTO1 é: $ARGUMENTO1"
+            ```
+          - "Salve as alterações (Ctrl+O, Enter, Ctrl+X)."
+          - "Vamos executar o script sem argumentos primeiro:"
+          - "`./meu_script.sh`"
+          - "Observe que as variáveis $1, $2, etc. estarão vazias, pois não passamos argumentos."
+          - "Agora, vamos executar o script com argumentos:"
+          - "`./meu_script.sh 'Aprendendo Bash' 42`"
+          - "Observe como os argumentos são acessados: $1 contém 'Aprendendo Bash' e $2 contém '42'."
+          - "Vamos experimentar com mais argumentos:"
+          - "`./meu_script.sh argumento1 'argumento com espaços' 123 \"outro argumento\"`"
+          - "Note que argumentos com espaços devem estar entre aspas para serem tratados como um único argumento."
+        tips:
+          - type: "info"
+            title: "Variáveis no Bash"
+            content: "No Bash, as variáveis são não-tipadas (o tipo é inferido automaticamente). Não use espaços ao redor do sinal de igual (**NOME='valor'** é correto, **NOME = 'valor'** causará erro). Para acessar o valor de uma variável, use o prefixo $ (ex: **$NOME**)."
+          - type: "info"
+            title: "Variáveis Especiais"
+            content: "O Bash possui várias variáveis especiais úteis para scripts - **$#** (número de argumentos), **$0** (nome do script), **$1**, **$2**... (argumentos posicionais), **$@** (todos argumentos como palavras separadas), **$*** (todos argumentos como uma única palavra), **$?** (status de saída do último comando, 0 significa sucesso)."
+          - type: "warning"
+            title: "Usando aspas com variáveis"
+            content: "É uma boa prática usar variáveis entre aspas duplas quando o valor pode conter espaços ou caracteres especiais - **echo \"$NOME\"** em vez de **echo $NOME**. Isso evita comportamentos inesperados."
+          - type: "tip"
+            title: "Capturando Saída de Comandos"
+            content: "Além de **$(comando)**, você pode usar a notação mais antiga - **RESULTADO=\\`comando\\`**"
+        validation:
+          - command: "./meu_script.sh teste | grep 'O primeiro argumento foi: teste'"
+            expectedOutput: "O primeiro argumento foi: teste"
+            errorMessage: "O script não parece estar processando o primeiro argumento corretamente. Verifique o código e confirme se você está passando o argumento 'teste'."
+
+      - name: "Estruturas de Controle: Loop For e If"
+        description: "Aprenda a usar estruturas de controle como loops 'for' para iteração e condicionais 'if' para tomada de decisões, permitindo criar scripts mais poderosos e dinâmicos."
+        steps:
+          - "As estruturas de controle permitem que os scripts tomem decisões e realizem repetições, tornando-os muito mais poderosos."
+          - "Vamos modificar 'meu_script.sh' para incluir loops e condicionais. Abra o arquivo:"
+          - "`nano meu_script.sh`"
+          - "Substitua todo o conteúdo pelo seguinte:"
+          - |
+            ```bash
+            #!/bin/bash
+            
+            echo "====================="
+            echo "   LOOPS EM BASH    "
+            echo "====================="
+            
+            # Loop básico com for
+            echo "Loop for com lista de números:"
+            for i in 1 2 3 4 5; do
+              echo "  Número: $i"
+            done
+            
+            # Loop for com sequência usando a sintaxe {início..fim}
+            echo "Loop for com sequência {1..5}:"
+            for i in {1..5}; do
+              echo "  Valor: $i"
+            done
+            
+            # Loop for com strings
+            echo "Loop for com lista de palavras:"
+            for palavra in Linux "Shell Script" Automação DevOps; do
+              echo "  Palavra: $palavra"
+            done
+            
+            # Loop for com substituição de comando
+            echo "Loop for com arquivos no diretório atual:"
+            for arquivo in $(ls); do
+              echo "  Arquivo: $arquivo"
+            done
+            
+            echo "====================="
+            echo " CONDICIONAIS EM BASH "
+            echo "====================="
+            
+            # Verificando se foi fornecido um argumento
+            if [ $# -eq 0 ]; then
+              echo "Nenhum argumento foi fornecido."
+              echo "Execute o script com: ./meu_script.sh ARGUMENTO"
+            else
+              echo "Foram fornecidos $# argumentos."
+              
+              # Verificando o valor do primeiro argumento
+              if [ "$1" == "teste" ]; then
+                echo "O primeiro argumento é 'teste'!"
+              elif [ "$1" == "help" ]; then
+                echo "AJUDA: Este script demonstra loops e condicionais em Bash."
+              else
+                echo "O primeiro argumento é: '$1' (não é 'teste' nem 'help')."
+              fi
+              
+              # Verificando se o argumento é um número
+              if [[ "$1" =~ ^[0-9]+$ ]]; then
+                echo "'$1' é um número."
+                
+                # Verificando se o número é par ou ímpar
+                if (( $1 % 2 == 0 )); then
+                  echo "'$1' é um número par."
+                else
+                  echo "'$1' é um número ímpar."
+                fi
+              else
+                echo "'$1' não é um número."
+              fi
+            fi
+            ```
+          - "Salve as alterações (Ctrl+O, Enter, Ctrl+X)."
+          - "Vamos executar o script com diferentes argumentos para ver como ele se comporta:"
+          - "Sem argumento:"
+          - "`./meu_script.sh`"
+          - "Com o argumento 'teste':"
+          - "`./meu_script.sh teste`"
+          - "Com o argumento 'help':"
+          - "`./meu_script.sh help`"
+          - "Com um número par:"
+          - "`./meu_script.sh 42`"
+          - "Com um número ímpar:"
+          - "`./meu_script.sh 33`"
+          - "Experimente também com outros valores para ver como o script se comporta!"
+        tips:
+          - type: "info"
+            title: "Estrutura do Loop For"
+            content: "O loop for no Bash segue a sintaxe: 'for variável in lista; do comandos; done'. A lista pode ser números, strings, padrões de arquivos, saídas de comandos ou sequências como {1..10}."
+          - type: "info"
+            title: "Sintaxe do If"
+            content: "O if no Bash segue a estrutura: 'if [ condição ]; then comandos; elif [ outra_condição ]; then comandos; else comandos; fi'. Note o 'fi' (if invertido) que fecha o bloco."
+          - type: "warning"
+            title: "Testes com [ ] vs [[ ]]"
+            content: "O Bash oferece duas formas de testes: [ ] (compatível com sh) e [[ ]] (específico do bash, mais poderoso). Com [[ ]] você pode usar operadores como =~, &&, || sem escapar, e evita erros com variáveis vazias."
+          - type: "tip"
+            title: "Operadores de Comparação"
+            content: "Numéricos: -eq (igual), -ne (diferente), -gt (maior), -lt (menor), -ge (maior/igual), -le (menor/igual). Strings: == (igual), != (diferente), -z (vazia), -n (não vazia). Arquivos: -f (existe/regular), -d (diretório), -r (legível)."
+          - type: "info"
+            title: "Expressões Aritméticas"
+            content: "Use (( )) para expressões aritméticas, como: if (( $num % 2 == 0 )); then echo 'Par'; fi. Dentro de (( )), você não precisa do $ antes das variáveis."
+        validation:
+          - command: "./meu_script.sh teste | grep \"O primeiro argumento é 'teste'!\""
+            expectedOutput: "O primeiro argumento é 'teste'!"
+            errorMessage: "A estrutura condicional 'if' não funcionou como esperado para o argumento 'teste'. Verifique seu código."
+          - command: "./meu_script.sh 42 | grep \"'42' é um número par.\""
+            expectedOutput: "'42' é um número par."
+            errorMessage: "O script não identificou corretamente '42' como um número par. Verifique a lógica condicional."
+
+      - name: "Funções e Manipulação de Arquivos"
+        description: "Aprenda a criar e usar funções para organizar seu código e a realizar operações básicas de manipulação de arquivos nos seus scripts."
+        steps:
+          - "As funções permitem organizar e reutilizar código. Vamos criar um script que usa funções e manipula arquivos."
+          - "Crie um novo arquivo chamado 'funcoes_arquivos.sh':"
+          - "`nano funcoes_arquivos.sh`"
+          - "Digite o seguinte conteúdo:"
+          - |
+            ```bash
+            #!/bin/bash
+            
+            # Função para exibir uma linha de separação
+            linha_separadora() {
+              local caractere=${1:-"-"}  # Parâmetro com valor padrão
+              local tamanho=${2:-50}     # Segundo parâmetro com valor padrão
+              
+              # Repete o caractere pelo tamanho especificado
+              printf "%${tamanho}s\n" | tr " " "$caractere"
+            }
+            
+            # Função para verificar se um arquivo existe
+            verificar_arquivo() {
+              local arquivo="$1"
+              
+              if [ -f "$arquivo" ]; then
+                echo "O arquivo '$arquivo' existe."
+                return 0  # Sucesso
+              else
+                echo "O arquivo '$arquivo' não existe."
+                return 1  # Falha
+              fi
+            }
+            
+            # Função para obter informações sobre um arquivo
+            info_arquivo() {
+              local arquivo="$1"
+              
+              # Verifica se o arquivo existe usando a função anterior
+              if ! verificar_arquivo "$arquivo"; then
+                return 1
+              fi
+              
+              linha_separadora "=" 60
+              echo "Informações do arquivo: $arquivo"
+              linha_separadora "-" 60
+              
+              echo "Tamanho: $(du -h "$arquivo" | cut -f1)"
+              echo "Permissões: $(ls -l "$arquivo" | awk '{print $1}')"
+              echo "Proprietário: $(ls -l "$arquivo" | awk '{print $3}')"
+              echo "Última modificação: $(date -r "$arquivo")"
+              
+              # Detecta o tipo de arquivo
+              if file "$arquivo" | grep -q "text"; then
+                echo "Tipo: Arquivo de texto"
+                echo "Número de linhas: $(wc -l < "$arquivo")"
+              else
+                echo "Tipo: Arquivo binário ou não-texto"
+              fi
+              
+              linha_separadora "=" 60
+            }
+            
+            # Função para criar um arquivo de texto
+            criar_arquivo_texto() {
+              local arquivo="$1"
+              local linhas=${2:-5}  # Número de linhas (padrão: 5)
+              
+              echo "Criando arquivo '$arquivo' com $linhas linhas..."
+              
+              # Cria o arquivo com o número especificado de linhas
+              for ((i=1; i<=linhas; i++)); do
+                echo "Esta é a linha $i do arquivo gerado automaticamente." >> "$arquivo"
+              done
+              
+              echo "Arquivo criado com sucesso!"
+              
+              # Exibe informações sobre o arquivo criado
+              info_arquivo "$arquivo"
+            }
+            
+            # Programa principal
+            linha_separadora "#" 60
+            echo "           MANIPULAÇÃO DE ARQUIVOS EM BASH            "
+            linha_separadora "#" 60
+            
+            # Verifica se foi fornecido um nome de arquivo
+            if [ $# -eq 0 ]; then
+              echo "Uso: $0 <nome_arquivo> [número_de_linhas]"
+              exit 1
+            fi
+            
+            arquivo="$1"
+            linhas=${2:-10}  # Usa 10 como padrão se não for fornecido
+            
+            # Verifica se o arquivo já existe
+            if [ -f "$arquivo" ]; then
+              echo "O arquivo '$arquivo' já existe."
+              echo "O que deseja fazer?"
+              echo "1. Sobrescrever"
+              echo "2. Mostrar informações"
+              echo "3. Sair"
+              
+              read -p "Escolha uma opção (1-3): " opcao
+              
+              case $opcao in
+                1)
+                  criar_arquivo_texto "$arquivo" "$linhas"
+                  ;;
+                2)
+                  info_arquivo "$arquivo"
+                  ;;
+                3)
+                  echo "Operação cancelada."
+                  exit 0
+                  ;;
+                *)
+                  echo "Opção inválida!"
+                  exit 1
+                  ;;
+              esac
+            else
+              criar_arquivo_texto "$arquivo" "$linhas"
+            fi
+            ```
+          - "Salve o arquivo (Ctrl+O, Enter, Ctrl+X)."
+          - "Torne o script executável:"
+          - "`chmod +x funcoes_arquivos.sh`"
+          - "Agora execute o script, fornecendo um nome de arquivo como argumento:"
+          - "`./funcoes_arquivos.sh teste.txt 15`"
+          - "Isso criará um arquivo 'teste.txt' com 15 linhas de texto."
+          - "Você pode executar o script novamente com o mesmo arquivo para ver as opções:"
+          - "`./funcoes_arquivos.sh teste.txt`"
+          - "Experimente as diferentes opções (1, 2 ou 3)."
+          - "Verifique o conteúdo do arquivo criado:"
+          - "`cat teste.txt`"
+        tips:
+          - type: "info"
+            title: "Definição de Funções"
+            content: "As funções no Bash podem ser definidas como: nome_funcao() { comandos; } ou function nome_funcao { comandos; }. Elas são chamadas usando apenas o nome: nome_funcao arg1 arg2."
+          - type: "tip"
+            title: "Parâmetros em Funções"
+            content: "Dentro de uma função, $1, $2, etc. referem-se aos parâmetros da função, não aos argumentos do script. Use 'local' para declarar variáveis locais à função (não disponíveis fora dela)."
+          - type: "info"
+            title: "Valor de Retorno"
+            content: "Funções Bash retornam um código de status (0-255) usando 'return'. Use 0 para sucesso e valores não-zero para erro. Para retornar strings ou valores, use 'echo' e capture a saída."
+          - type: "warning"
+            title: "Manipulação de Arquivos"
+            content: "Sempre verifique se um arquivo existe antes de manipulá-lo e use aspas ao redor de nomes de arquivos para evitar problemas com espaços e caracteres especiais."
+        validation:
+          - command: "./funcoes_arquivos.sh arquivo_teste.txt 3 && cat arquivo_teste.txt | wc -l"
+            expectedOutput: "3"
+            errorMessage: "O script não criou o arquivo com o número correto de linhas."
+          - command: "grep -q 'linha 2' arquivo_teste.txt && echo 'success' || echo 'error'"
+            expectedOutput: "success"
+            errorMessage: "O conteúdo do arquivo não parece estar correto."

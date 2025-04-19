@@ -1,0 +1,208 @@
+labs:
+  - id: linux-processamento-texto
+    title: Processamento de Texto no Linux
+    description: Domine as ferramentas essenciais de manipulação de texto no Linux - grep, sed, awk
+    version: 1.0.0
+    duration: 25m
+    tags: [linux, text-processing, grep, sed, awk]
+    url: https://github.com/badtuxx/girus-labs/blob/main/labs/lab_01_linux_processamento-texto.yaml
+
+  - id: linux-gerenciamento-processos
+    title: Gerenciamento e Monitoramento de Processos no Linux
+    description: Aprenda a monitorar, controlar e gerenciar processos no sistema Linux
+    version: 1.0.0
+    duration: 30m
+    tags: [linux, processes, ps, top, kill]
+    url: https://github.com/badtuxx/girus-labs/blob/main/labs/lab_02_linux_gerenciamento-processos.yaml
+
+  - id: linux-shell-script
+    title: Shell Script no Linux
+    description: Aprenda a criar scripts de shell para automatizar tarefas no Linux
+    version: 1.0.0
+    duration: 30m
+    tags: [linux, shell, bash, scripting, automation]
+    url: https://github.com/badtuxx/girus-labs/blob/main/labs/lab_03_linux_shell-script.yaml
+
+  - id: linux-monitoramento-sistema
+    title: Monitoramento Básico do Sistema Linux
+    description: Aprenda a usar ferramentas como vmstat, iostat, free e o /proc para monitorar recursos do sistema
+    version: 1.0.0
+    duration: 20m
+    tags: [linux, monitoring, system]
+    url: https://github.com/badtuxx/girus-labs/blob/main/labs/lab_04_linux_monitoramento-sistema.yaml
+
+  - id: linux-comandos-basicos
+    title: Fundamentos do Linux - Navegação e Comandos Essenciais
+    description: Domine os comandos básicos e conceitos fundamentais do Linux
+    version: 1.0.0
+    duration: 25m
+    tags: [linux, basics, commands, terminal]
+    url: https://github.com/badtuxx/girus-labs/blob/main/labs/lab_11_linux_comandos-basicos.yaml
+
+  - id: linux-gerenciamento-usuarios
+    title: Gerenciamento de Usuários no Linux
+    description: Aprenda a gerenciar usuários, grupos e permissões no Linux
+    version: 1.0.0
+    duration: 25m
+    tags: [linux, users, groups, permissions]
+    url: https://github.com/badtuxx/girus-labs/blob/main/labs/lab_12_linux_gerenciamento-usuarios.yaml
+
+  - id: linux-permissoes-arquivos
+    title: Permissões de Arquivos no Linux
+    description: Entenda o sistema de permissões de arquivos e diretórios no Linux
+    version: 1.0.0
+    duration: 20m
+    tags: [linux, permissions, chmod, chown]
+    url: https://github.com/badtuxx/girus-labs/blob/main/labs/lab_13_linux_permissoes-arquivos.yaml
+
+  - id: docker-fundamentos
+    title: Fundamentos do Docker
+    description: Introdução ao Docker, criação de imagens e gerenciamento de containers
+    version: 1.1.0
+    duration: 45m
+    tags: [docker, containers, devops]
+    url: https://github.com/badtuxx/girus-labs/blob/main/labs/lab_21_docker_fundamentos.yaml
+
+  - id: docker-gerenciamento-containers
+    title: Gerenciamento de Containers Docker
+    description: Aprenda técnicas avançadas para gerenciar containers Docker
+    version: 1.0.0
+    duration: 30m
+    tags: [docker, containers, management, devops]
+    url: https://github.com/badtuxx/girus-labs/blob/main/labs/lab_22_docker_gerenciamento-containers.yaml
+
+  - id: docker-fundamentos-redes
+    title: Fundamentos de Redes no Docker
+    description: Entenda e configure redes no ecossistema Docker
+    version: 1.0.0
+    duration: 25m
+    tags: [docker, networking, containers, devops]
+    url: https://github.com/badtuxx/girus-labs/blob/main/labs/lab_05_docker_fundamentos-redes.yaml
+
+  - id: docker-volumes
+    title: Volumes no Docker
+    description: Aprenda a persistir dados com volumes no Docker
+    version: 1.0.0
+    duration: 25m
+    tags: [docker, volumes, persistence, devops]
+    url: https://github.com/badtuxx/girus-labs/blob/main/labs/lab_06_docker_volumes.yaml
+
+  - id: docker-compose
+    title: Introdução ao Docker Compose
+    description: Aprenda a definir e executar aplicações multi-container Docker de forma declarativa
+    version: 1.0.0
+    duration: 25m
+    tags: [docker, compose, multi-container, devops]
+    url: https://github.com/badtuxx/girus-labs/blob/main/labs/lab_07_docker_compose.yaml
+
+  - id: kubernetes-exploracao-recursos
+    title: Exploração de Recursos no Kubernetes
+    description: Conheça os principais recursos disponíveis no Kubernetes
+    version: 1.0.0
+    duration: 25m
+    tags: [kubernetes, k8s, resources, devops]
+    url: https://github.com/badtuxx/girus-labs/blob/main/labs/lab_08_kubernetes_exploracao-recursos.yaml
+
+  - id: kubernetes-servicos-redes
+    title: Serviços e Redes no Kubernetes
+    description: Configure serviços e redes para suas aplicações no Kubernetes
+    version: 1.0.0
+    duration: 30m
+    tags: [kubernetes, k8s, services, networking, devops]
+    url: https://github.com/badtuxx/girus-labs/blob/main/labs/lab_09_kubernetes_servicos-redes.yaml
+
+  - id: kubernetes-configmaps-secrets
+    title: ConfigMaps e Secrets no Kubernetes
+    description: Gerencie configurações e dados sensíveis no Kubernetes
+    version: 1.0.0
+    duration: 25m
+    tags: [kubernetes, k8s, configmaps, secrets, devops]
+    url: https://github.com/badtuxx/girus-labs/blob/main/labs/lab_10_kubernetes_configmaps-secrets.yaml
+
+  - id: kubernetes-cronjobs
+    title: CronJobs no Kubernetes
+    description: Configure tarefas agendadas no Kubernetes com CronJobs
+    version: 1.0.0
+    duration: 25m
+    tags: [kubernetes, k8s, cronjobs, scheduling, devops]
+    url: https://github.com/badtuxx/girus-labs/blob/main/labs/lab_11_kubernetes_cronjobs.yaml
+
+  - id: kubernetes-deployments
+    title: Deployments no Kubernetes
+    description: Aprenda a criar e gerenciar deployments no Kubernetes
+    version: 1.0.2
+    duration: 60m
+    tags: [kubernetes, k8s, deployments, devops]
+    url: https://github.com/badtuxx/girus-labs/blob/main/labs/lab_03_kubernetes_deployments.yaml
+
+  - id: kubernetes-fundamentos
+    title: Introdução ao Kubernetes
+    description: Aprenda os conceitos básicos do Kubernetes e sua arquitetura
+    version: 1.0.0
+    duration: 45m
+    tags: [kubernetes, k8s, fundamentals, devops]
+    url: https://github.com/badtuxx/girus-labs/blob/main/labs/lab_41_kubernetes_fundamentos.yaml
+
+  - id: kubernetes-deployment
+    title: Deployment avançado no Kubernetes
+    description: Aprenda técnicas avançadas de deployments no Kubernetes
+    version: 1.0.0
+    duration: 35m
+    tags: [kubernetes, k8s, deployment, devops]
+    url: https://github.com/badtuxx/girus-labs/blob/main/labs/lab_42_kubernetes_deployment.yaml
+
+  - id: aws-localstack-terraform
+    title: AWS LocalStack com Terraform
+    description: Aprenda a usar AWS LocalStack para desenvolvimento local com Terraform
+    version: 1.0.0
+    duration: 30m
+    tags: [aws, localstack, terraform, devops]
+    url: https://github.com/badtuxx/girus-labs/blob/main/labs/lab_31_aws_localstack_terraform.yaml
+
+  - id: aws-s3-storage
+    title: AWS S3 - Armazenamento na Nuvem
+    description: Como utilizar o serviço S3 da AWS para armazenamento de objetos
+    version: 2.0.0
+    duration: 30m
+    tags: [aws, cloud, s3, storage]
+    url: https://github.com/badtuxx/girus-labs/blob/main/labs/lab_32_aws_s3_storage.yaml
+
+  - id: aws-dynamodb-nosql
+    title: AWS DynamoDB - Banco de Dados NoSQL
+    description: Aprenda a utilizar o DynamoDB da AWS para armazenamento NoSQL
+    version: 1.0.0
+    duration: 35m
+    tags: [aws, cloud, dynamodb, nosql, database]
+    url: https://github.com/badtuxx/girus-labs/blob/main/labs/lab_33_aws_dynamodb_nosql.yaml
+
+  - id: aws-lambda-serverless
+    title: AWS Lambda - Computação Serverless
+    description: Explore a computação serverless com AWS Lambda
+    version: 1.0.0
+    duration: 35m
+    tags: [aws, cloud, lambda, serverless]
+    url: https://github.com/badtuxx/girus-labs/blob/main/labs/lab_34_aws_lambda_serverless.yaml
+
+  - id: terraform-fundamentos
+    title: Terraform - Fundamentos de Infraestrutura como Código
+    description: Aprenda os princípios fundamentais do Terraform
+    version: 1.0.0
+    duration: 40m
+    tags: [terraform, iac, infrastructure, devops]
+    url: https://github.com/badtuxx/girus-labs/blob/main/labs/lab_35_terraform_fundamentos.yaml
+
+  - id: terraform-aws-infraestrutura
+    title: Terraform com AWS - Infraestrutura na Nuvem
+    description: Crie e gerencie infraestrutura AWS com Terraform
+    version: 1.0.0
+    duration: 45m
+    tags: [terraform, aws, cloud, infrastructure, devops]
+    url: https://github.com/badtuxx/girus-labs/blob/main/labs/lab_36_terraform_aws_infraestrutura.yaml
+
+  - id: terraform-provisioners-modulos
+    title: Terraform - Provisioners e Módulos
+    description: Aprenda a utilizar provisioners e módulos no Terraform
+    version: 1.0.0
+    duration: 40m
+    tags: [terraform, provisioners, modules, devops]
+    url: https://github.com/badtuxx/girus-labs/blob/main/labs/lab_37_terraform_provisioners_e_modulos.yaml

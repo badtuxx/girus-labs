@@ -1,0 +1,328 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: lab-docker-fundamentos
+  namespace: girus
+  labels:
+    app: girus-lab-template
+data:
+  lab.yaml: |
+    name: docker-fundamentos
+    title: "Fundamentos do Docker"
+    description: "Introdução ao Docker, criação de imagens e gerenciamento de containers"
+    difficulty: "Iniciante"
+    duration: "45 minutos"
+    autor: "Jeferson Fernando"
+    lab_type: "container"
+    sections:
+      - title: "Introdução ao Docker"
+        content: |
+          # Introdução ao Docker
+
+          Neste laboratório, você vai aprender os conceitos fundamentais do Docker e como
+          criar e gerenciar containers.
+
+          ## O que é o Docker?
+
+          Docker é uma plataforma de código aberto que permite desenvolver, empacotar e executar
+          aplicações em containers. Containers são ambientes isolados que compartilham o kernel
+          do sistema operacional host, tornando-os mais leves e rápidos que máquinas virtuais.
+
+          ## Conceitos principais
+
+          * **Imagem**: Um pacote com todas as dependências e informações necessárias para criar um container
+          * **Container**: Uma instância em execução de uma imagem
+          * **Dockerfile**: Um arquivo de texto com instruções para construir uma imagem
+          * **Registry**: Um repositório para armazenar e distribuir imagens Docker (ex: Docker Hub)
+
+      - title: "Instalação e primeira execução"
+        content: |
+          # Instalação e primeira execução
+
+          ## Verificando se o Docker está instalado
+
+          ```bash
+          # Verificar a versão do Docker instalada
+          docker --version
+          
+          # Verificar informações detalhadas sobre a instalação
+          docker info
+          ```
+
+          Se o Docker não estiver instalado, siga as instruções em [docker.com/get-started](https://www.docker.com/get-started).
+
+          ## Executando seu primeiro container
+
+          ```bash
+          # Executar um container hello-world
+          docker run hello-world
+          
+          # Explicação do que aconteceu:
+          # 1. Docker procurou a imagem 'hello-world' localmente
+          # 2. Como não encontrou, baixou do Docker Hub
+          # 3. Docker criou um container a partir da imagem
+          # 4. Docker executou o container
+          # 5. Container exibiu a mensagem e terminou a execução
+          ```
+
+      - title: "Comandos básicos do Docker"
+        content: |
+          # Comandos básicos do Docker
+
+          ## Listar containers
+
+          ```bash
+          # Listar containers em execução
+          docker ps
+          
+          # Listar todos os containers (incluindo os parados)
+          docker ps -a
+          ```
+
+          ## Listar imagens
+
+          ```bash
+          # Listar imagens disponíveis
+          docker images
+          ```
+
+          ## Executar um container em segundo plano
+
+          ```bash
+          # Executar nginx em background e mapear a porta 8080 do host para a porta 80 do container
+          docker run -d -p 8080:80 --name meu-nginx nginx
+          
+          # Verificar se está rodando
+          docker ps
+          
+          # Acessar no navegador: http://localhost:8080
+          ```
+
+          ## Parar e iniciar containers
+
+          ```bash
+          # Parar um container
+          docker stop meu-nginx
+          
+          # Iniciar um container parado
+          docker start meu-nginx
+          
+          # Reiniciar um container
+          docker restart meu-nginx
+          ```
+
+          ## Remover containers e imagens
+
+          ```bash
+          # Remover um container (deve estar parado)
+          docker rm meu-nginx
+          
+          # Forçar a remoção (mesmo em execução)
+          docker rm -f meu-nginx
+          
+          # Remover uma imagem
+          docker rmi nginx
+          ```
+
+      - title: "Trabalhando com volumes"
+        content: |
+          # Trabalhando com volumes
+
+          Os volumes Docker permitem persistir dados gerados e utilizados por containers.
+
+          ## Criar e montar um volume
+
+          ```bash
+          # Criar um volume
+          docker volume create meu-volume
+          
+          # Listar volumes
+          docker volume ls
+          
+          # Executar um container com um volume montado
+          docker run -d --name nginx-com-volume -v meu-volume:/usr/share/nginx/html -p 8080:80 nginx
+          
+          # Verificar detalhes do volume
+          docker volume inspect meu-volume
+          ```
+
+          ## Montar um diretório do host
+
+          ```bash
+          # Criar um diretório no host
+          mkdir ~/docker-nginx-html
+          
+          # Criar um arquivo HTML de teste
+          echo "<html><body><h1>Teste de volume Docker</h1></body></html>" > ~/docker-nginx-html/index.html
+          
+          # Montar o diretório no container
+          docker run -d --name nginx-host -v ~/docker-nginx-html:/usr/share/nginx/html -p 8081:80 nginx
+          
+          # Acessar no navegador: http://localhost:8081
+          ```
+
+      - title: "Criando sua própria imagem"
+        content: |
+          # Criando sua própria imagem
+
+          ## Criando um Dockerfile
+
+          Crie um diretório para seu projeto:
+
+          ```bash
+          mkdir ~/minha-app-docker
+          cd ~/minha-app-docker
+          ```
+
+          Crie um arquivo chamado `Dockerfile`:
+
+          ```
+          FROM nginx:alpine
+          COPY index.html /usr/share/nginx/html/
+          EXPOSE 80
+          CMD ["nginx", "-g", "daemon off;"]
+          ```
+
+          Crie um arquivo `index.html`:
+
+          ```html
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <title>Minha aplicação Docker</title>
+              <style>
+                  body {
+                      font-family: Arial, sans-serif;
+                      text-align: center;
+                      margin-top: 50px;
+                      background-color: #f0f0f0;
+                  }
+                  h1 {
+                      color: #333;
+                  }
+              </style>
+          </head>
+          <body>
+              <h1>Minha primeira imagem Docker!</h1>
+              <p>Esta é uma página web servida de um container Docker personalizado.</p>
+          </body>
+          </html>
+          ```
+
+          ## Construindo e executando a imagem
+
+          ```bash
+          # Construir a imagem
+          docker build -t minha-app:1.0 .
+          
+          # Verificar se a imagem foi criada
+          docker images
+          
+          # Executar um container a partir da imagem
+          docker run -d -p 8082:80 --name minha-app minha-app:1.0
+          
+          # Acessar no navegador: http://localhost:8082
+          ```
+
+      - title: "Docker Compose"
+        content: |
+          # Docker Compose
+
+          O Docker Compose permite definir e gerenciar aplicações multi-container.
+
+          ## Instalando o Docker Compose
+
+          ```bash
+          # O Docker Compose normalmente já vem com o Docker Desktop
+          # Verificar a versão
+          docker-compose --version
+          ```
+
+          ## Criando um arquivo docker-compose.yml
+
+          Crie um arquivo `docker-compose.yml`:
+
+          ```yaml
+          version: '3'
+          
+          services:
+            web:
+              image: nginx:alpine
+              ports:
+                - "8083:80"
+              volumes:
+                - ./html:/usr/share/nginx/html
+              restart: always
+          
+            db:
+              image: postgres:13
+              environment:
+                POSTGRES_PASSWORD: exemplo
+                POSTGRES_USER: usuario
+                POSTGRES_DB: meudb
+              volumes:
+                - db-data:/var/lib/postgresql/data
+              restart: always
+          
+          volumes:
+            db-data:
+          ```
+
+          Crie um diretório para os arquivos HTML:
+
+          ```bash
+          mkdir html
+          echo "<html><body><h1>Aplicação Multi-Container</h1></body></html>" > html/index.html
+          ```
+
+          ## Executando com Docker Compose
+
+          ```bash
+          # Iniciar os serviços em segundo plano
+          docker-compose up -d
+          
+          # Verificar os serviços em execução
+          docker-compose ps
+          
+          # Acessar no navegador: http://localhost:8083
+          
+          # Parar os serviços
+          docker-compose down
+          
+          # Parar os serviços e remover volumes
+          docker-compose down -v
+          ```
+
+      - title: "Conclusão e Próximos Passos"
+        content: |
+          # Conclusão e Próximos Passos
+
+          Neste laboratório, você aprendeu os conceitos fundamentais do Docker:
+
+          * Executar containers a partir de imagens existentes
+          * Gerenciar containers e imagens
+          * Trabalhar com volumes para persistência de dados
+          * Criar suas próprias imagens com Dockerfile
+          * Gerenciar aplicações multi-container com Docker Compose
+
+          ## Práticas recomendadas
+
+          * Use imagens oficiais e confiáveis
+          * Construa imagens leves (baseadas em Alpine, por exemplo)
+          * Não execute containers como root quando possível
+          * Use volumes para dados persistentes
+          * Documente os parâmetros necessários nas imagens
+
+          ## Próximos passos
+
+          * Docker Networking
+          * Docker Swarm para orquestração
+          * Kubernetes para orquestração em escala
+          * CI/CD com Docker
+          * Registry privado
+
+          ## Recursos adicionais
+
+          * [Documentação oficial do Docker](https://docs.docker.com/)
+          * [Docker Hub](https://hub.docker.com/)
+          * [Play with Docker](https://labs.play-with-docker.com/)

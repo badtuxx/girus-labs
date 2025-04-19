@@ -1,0 +1,465 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: lab-kubernetes-deployment
+  namespace: girus
+  labels:
+    app: girus-lab-template
+data:
+  lab.yaml: |
+    name: kubernetes-deployment
+    title: "Deployments no Kubernetes"
+    description: "Aprenda a criar e gerenciar deployments no Kubernetes"
+    difficulty: "Intermediário"
+    duration: "60 minutos"
+    autor: "Jeferson Fernando"
+    lab_type: "kubernetes"
+    sections:
+      - title: "Introdução aos Deployments"
+        content: |
+          # Deployments no Kubernetes
+
+          Neste laboratório, você aprenderá como criar e gerenciar Deployments no Kubernetes. 
+          Deployments são recursos fundamentais para gerenciar aplicações em um cluster Kubernetes.
+
+          ## O que são Deployments?
+
+          Um Deployment é um objeto do Kubernetes que fornece atualizações declarativas para Pods e ReplicaSets.
+          Você descreve um estado desejado em um Deployment, e o controlador de Deployment altera o estado 
+          atual para o estado desejado a uma taxa controlada.
+
+          ## Benefícios dos Deployments
+
+          * Atualizações rolling (sem downtime)
+          * Rollbacks facilitados para versões anteriores
+          * Escala horizontal simplificada
+          * Pausa e continuação de rollouts
+          * Estratégias personalizadas de atualização
+
+      - title: "Preparando o ambiente"
+        content: |
+          # Preparando o ambiente
+
+          Para este laboratório, vamos utilizar um cluster Kubernetes local do Kind que já foi configurado pelo GIRUS.
+          
+          ## Verificando o ambiente
+
+          Vamos verificar se o cluster está funcionando corretamente:
+
+          ```bash
+          # Verificar a versão do Kubernetes
+          kubectl version --short
+
+          # Verificar os nós do cluster
+          kubectl get nodes
+
+          # Verificar os namespaces
+          kubectl get namespaces
+
+          # Criar um namespace para nossos testes
+          kubectl create namespace lab-deployment
+          
+          # Definir esse namespace como padrão para este laboratório
+          kubectl config set-context --current --namespace=lab-deployment
+          ```
+
+          ## Verificando o namespace atual
+
+          ```bash
+          # Verificar o namespace atual
+          kubectl config view --minify | grep namespace:
+          ```
+
+      - title: "Criando seu primeiro Deployment"
+        content: |
+          # Criando seu primeiro Deployment
+
+          Vamos criar um Deployment básico usando a imagem nginx:
+
+          ## Criando via comando kubectl
+
+          ```bash
+          # Criar um deployment para o nginx
+          kubectl create deployment nginx-deployment --image=nginx:1.20 --replicas=3
+          
+          # Verificar o status do deployment
+          kubectl get deployments
+          
+          # Ver detalhes do deployment
+          kubectl describe deployment nginx-deployment
+          ```
+
+          ## Acessando os Pods e ReplicaSets
+
+          ```bash
+          # Visualizar os pods do deployment
+          kubectl get pods -l app=nginx-deployment
+          
+          # Visualizar o replicaset criado pelo deployment
+          kubectl get replicasets
+          
+          # Ver logs de um pod específico (substitua POD_NAME pelo nome de um pod real)
+          POD_NAME=$(kubectl get pods -l app=nginx-deployment -o jsonpath="{.items[0].metadata.name}")
+          kubectl logs $POD_NAME
+          ```
+
+      - title: "Criando um Deployment com YAML"
+        content: |
+          # Criando um Deployment com YAML
+
+          Agora vamos criar um Deployment usando um arquivo YAML:
+
+          ## Criando o arquivo de manifesto
+
+          Crie um arquivo chamado `webapp-deployment.yaml`:
+
+          ```yaml
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: webapp
+            labels:
+              app: webapp
+          spec:
+            replicas: 3
+            selector:
+              matchLabels:
+                app: webapp
+            template:
+              metadata:
+                labels:
+                  app: webapp
+              spec:
+                containers:
+                - name: webapp
+                  image: httpd:2.4
+                  ports:
+                  - containerPort: 80
+                  resources:
+                    limits:
+                      memory: "128Mi"
+                      cpu: "500m"
+                    requests:
+                      memory: "64Mi"
+                      cpu: "250m"
+                  livenessProbe:
+                    httpGet:
+                      path: /
+                      port: 80
+                    initialDelaySeconds: 30
+                    periodSeconds: 10
+                  readinessProbe:
+                    httpGet:
+                      path: /
+                      port: 80
+                    initialDelaySeconds: 5
+                    periodSeconds: 5
+          ```
+
+          ## Aplicando e verificando o manifesto
+
+          ```bash
+          # Aplicar o manifesto YAML
+          kubectl apply -f webapp-deployment.yaml
+          
+          # Verificar o status do deployment
+          kubectl get deployments
+          
+          # Verificar os pods criados
+          kubectl get pods -l app=webapp
+          ```
+
+      - title: "Atualizando um Deployment"
+        content: |
+          # Atualizando um Deployment
+
+          Vamos aprender a atualizar um Deployment existente:
+
+          ## Atualizando através do kubectl
+
+          ```bash
+          # Atualizar a imagem do nginx-deployment
+          kubectl set image deployment/nginx-deployment nginx=nginx:1.21
+          
+          # Observar o processo de atualização (em uma janela separada)
+          kubectl rollout status deployment/nginx-deployment
+          
+          # Verificar a nova versão do Pod
+          kubectl describe deployment nginx-deployment | grep Image
+          ```
+
+          ## Atualizando através de YAML
+
+          Modifique o arquivo `webapp-deployment.yaml` alterando a imagem para `httpd:2.4-alpine`:
+
+          ```yaml
+          containers:
+          - name: webapp
+            image: httpd:2.4-alpine
+          ```
+
+          ```bash
+          # Aplicar a nova versão
+          kubectl apply -f webapp-deployment.yaml
+          
+          # Observar o processo de atualização
+          kubectl rollout status deployment/webapp
+          ```
+
+          ## Verificando o histórico de versões
+
+          ```bash
+          # Ver o histórico de revisões
+          kubectl rollout history deployment/webapp
+          
+          # Ver detalhes de uma revisão específica
+          kubectl rollout history deployment/webapp --revision=1
+          ```
+
+      - title: "Rollback de um Deployment"
+        content: |
+          # Rollback de um Deployment
+
+          Vamos aprender a fazer rollback para versões anteriores:
+
+          ## Realizando rollback para versão anterior
+
+          ```bash
+          # Realizar rollback para a versão anterior
+          kubectl rollout undo deployment/nginx-deployment
+          
+          # Verificar o status do rollback
+          kubectl rollout status deployment/nginx-deployment
+          
+          # Confirmar a imagem revertida
+          kubectl describe deployment nginx-deployment | grep Image
+          ```
+
+          ## Rollback para uma versão específica
+
+          ```bash
+          # Ver o histórico de versões
+          kubectl rollout history deployment/webapp
+          
+          # Realizar rollback para uma revisão específica
+          kubectl rollout undo deployment/webapp --to-revision=1
+          
+          # Verificar o status
+          kubectl rollout status deployment/webapp
+          ```
+
+      - title: "Estratégias de Deployment"
+        content: |
+          # Estratégias de Deployment
+
+          O Kubernetes suporta diferentes estratégias de deployment:
+
+          ## RollingUpdate vs Recreate
+
+          Modifique o arquivo `webapp-deployment.yaml` para adicionar uma estratégia:
+
+          ```yaml
+          spec:
+            replicas: 3
+            strategy:
+              type: RollingUpdate
+              rollingUpdate:
+                maxSurge: 1
+                maxUnavailable: 1
+            selector:
+              matchLabels:
+                app: webapp
+          ```
+
+          ```bash
+          # Aplicar a nova configuração
+          kubectl apply -f webapp-deployment.yaml
+          
+          # Atualizar a imagem para observar a estratégia RollingUpdate
+          kubectl set image deployment/webapp webapp=httpd:2.4
+          
+          # Observar o processo
+          kubectl rollout status deployment/webapp
+          ```
+
+          ## Estratégia Recreate
+
+          Agora altere para a estratégia Recreate:
+
+          ```yaml
+          spec:
+            replicas: 3
+            strategy:
+              type: Recreate
+            selector:
+              matchLabels:
+                app: webapp
+          ```
+
+          ```bash
+          # Aplicar a nova configuração
+          kubectl apply -f webapp-deployment.yaml
+          
+          # Atualizar a imagem para observar a estratégia Recreate
+          kubectl set image deployment/webapp webapp=httpd:2.4-alpine
+          
+          # Observar o processo (todos os pods serão terminados antes de criar novos)
+          kubectl get pods -l app=webapp -w
+          ```
+
+      - title: "Scaling de Deployments"
+        content: |
+          # Scaling de Deployments
+
+          Vamos aprender a escalar os deployments horizontalmente:
+
+          ## Scaling manual via comando
+
+          ```bash
+          # Escalar o deployment para 5 réplicas
+          kubectl scale deployment nginx-deployment --replicas=5
+          
+          # Verificar o número de pods
+          kubectl get pods -l app=nginx-deployment
+          
+          # Reduzir o número de réplicas
+          kubectl scale deployment nginx-deployment --replicas=2
+          ```
+
+          ## Scaling via YAML
+
+          Modifique o arquivo `webapp-deployment.yaml` alterando o número de réplicas:
+
+          ```yaml
+          spec:
+            replicas: 4
+          ```
+
+          ```bash
+          # Aplicar a nova configuração
+          kubectl apply -f webapp-deployment.yaml
+          
+          # Verificar o número de pods
+          kubectl get pods -l app=webapp
+          ```
+
+          ## Autoscaling (HPA)
+
+          ```bash
+          # Criar HPA para o webapp deployment
+          kubectl autoscale deployment webapp --min=2 --max=10 --cpu-percent=80
+          
+          # Verificar o HPA
+          kubectl get hpa
+          ```
+
+      - title: "Configurações avançadas"
+        content: |
+          # Configurações avançadas
+
+          Vamos explorar algumas configurações avançadas de Deployments:
+
+          ## Pausando e retomando rollouts
+
+          ```bash
+          # Pausar o rollout de um deployment
+          kubectl rollout pause deployment/webapp
+          
+          # Fazer várias alterações
+          kubectl set image deployment/webapp webapp=httpd:2.4
+          kubectl set resources deployment/webapp -c=webapp --limits=cpu=200m,memory=256Mi
+          
+          # Verificar que as alterações não são aplicadas ainda
+          kubectl get pods -l app=webapp
+          
+          # Retomar o rollout
+          kubectl rollout resume deployment/webapp
+          
+          # Observar as alterações sendo aplicadas
+          kubectl rollout status deployment/webapp
+          ```
+
+          ## Definindo um deadline de progresso
+
+          ```yaml
+          spec:
+            progressDeadlineSeconds: 120
+            replicas: 3
+          ```
+
+          ## Utilizando ConfigMaps e Secrets
+
+          Crie um ConfigMap para sua aplicação:
+
+          ```bash
+          # Criar um ConfigMap
+          kubectl create configmap webapp-config --from-literal=app.mode=production --from-literal=app.debug=false
+          
+          # Criar um Secret
+          kubectl create secret generic webapp-secret --from-literal=api.key=12345 --from-literal=db.password=senha123
+          ```
+
+          Atualize seu deployment para usar essas configurações:
+
+          ```yaml
+          containers:
+          - name: webapp
+            image: httpd:2.4
+            env:
+            - name: APP_MODE
+              valueFrom:
+                configMapKeyRef:
+                  name: webapp-config
+                  key: app.mode
+            - name: DEBUG
+              valueFrom:
+                configMapKeyRef:
+                  name: webapp-config
+                  key: app.debug
+            - name: API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: webapp-secret
+                  key: api.key
+          ```
+
+      - title: "Conclusão"
+        content: |
+          # Conclusão
+
+          Neste laboratório, você aprendeu:
+
+          * Conceitos fundamentais de Deployments
+          * Como criar Deployments com kubectl e YAML
+          * Estratégias de atualização (RollingUpdate e Recreate)
+          * Como realizar rollback para versões anteriores
+          * Scaling manual e automático de aplicações
+          * Configurações avançadas de Deployments
+
+          ## Limpeza
+
+          ```bash
+          # Remover os recursos criados
+          kubectl delete deployment nginx-deployment
+          kubectl delete deployment webapp
+          kubectl delete configmap webapp-config
+          kubectl delete secret webapp-secret
+          kubectl delete hpa webapp
+          
+          # Remover o namespace
+          kubectl delete namespace lab-deployment
+          ```
+
+          ## Próximos passos
+
+          * Aprender sobre Services e Ingress
+          * Explorar StatefulSets para aplicações com estado
+          * Aprofundar conhecimentos de networking no Kubernetes
+          * Implementar CI/CD para deployments contínuos
+          * Configuração de monitoramento e logging
+
+          ## Recursos adicionais
+
+          * [Documentação oficial de Deployments](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/)
+          * [Patterns for Kubernetes Deployments](https://kubernetes.io/blog/2018/05/18/kubernetes-patterns-for-deployment/)
+          * [Best Practices for Deployments](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#strategy)

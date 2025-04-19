@@ -1,0 +1,180 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: linux-processamento-texto-lab
+  namespace: girus
+  labels:
+    app: girus-lab-template
+data:
+  lab.yaml: |
+    name: linux-processamento-texto
+    title: "Processamento de Texto no Linux: grep, sed, awk"
+    description: "Domine as ferramentas essenciais de manipulação de texto no Linux, aprendendo a buscar padrões com grep, editar fluxos de texto com sed e processar dados estruturados com awk. Este laboratório guiado fornece uma base sólida para automação, análise de logs e administração de sistemas Linux através do processamento eficiente de texto."
+    duration: 25m
+    image: "linuxtips/girus-devops:0.1"
+    tasks:
+      - name: "Buscando Padrões com grep"
+        description: "Aprenda a utilizar o grep para encontrar e filtrar texto por padrões, compreendendo suas principais opções e casos de uso para análise de arquivos e logs."
+        steps:
+          - "O **grep** (Global Regular Expression Print) é uma das ferramentas mais importantes para processamento de texto no Linux. Ele permite buscar padrões específicos em arquivos ou na saída de outros comandos, sendo fundamentalmente útil para administração de sistemas e análise de logs."
+          - "O grep trabalha linha por linha, examinando cada uma para determinar se contém o padrão de busca especificado, exibindo apenas as linhas que correspondem ao critério."
+          - "Vamos começar criando um arquivo de exemplo para demonstrar as funcionalidades do grep:"
+          - |
+            cat > arquivo_exemplo.txt << EOL
+            Linha 1 com a palavra linux
+            Linha 2 sem a palavra
+            Linha 3 com linux novamente
+            LINHA 4 COM LINUX
+            EOL
+          - "Este comando cria um arquivo chamado 'arquivo_exemplo.txt' com 4 linhas diferentes. Usamos o operador de redirecionamento `>` para enviar a saída do comando `cat` para o arquivo, e o delimitador 'EOL' (End Of Line) para indicar o início e fim do conteúdo."
+          - "**Busca básica com grep:**"
+          - "A forma mais simples de usar o grep é fornecer um padrão de busca e o nome do arquivo:"
+          - "`grep 'linux' arquivo_exemplo.txt`"
+          - "Este comando mostrará apenas as linhas que contêm a palavra 'linux'. Observe que, por padrão, o grep é case-sensitive (sensível a maiúsculas/minúsculas), então 'linux' e 'LINUX' são tratados como padrões diferentes."
+          - "**Ignorando case (maiúsculas/minúsculas):**"
+          - "Para realizar uma busca que ignore diferenças entre maiúsculas e minúsculas, usamos a flag `-i` (insensitive):"
+          - "`grep -i 'linux' arquivo_exemplo.txt`"
+          - "Agora o grep exibirá todas as linhas que contêm 'linux', 'LINUX', 'Linux', ou qualquer variação de capitalização."
+          - "**Contando ocorrências:**"
+          - "Em vez de exibir as linhas correspondentes, podemos apenas contar quantas delas existem com a flag `-c` (count):"
+          - "`grep -c -i 'linux' arquivo_exemplo.txt`"
+          - "Este comando retornará '3', indicando que três linhas contêm a palavra 'linux' (em qualquer capitalização)."
+          - "**Buscas mais avançadas:**"
+          - "O grep também permite buscas mais complexas usando expressões regulares. Por exemplo, para encontrar linhas que começam com 'Linha':"
+          - "`grep '^Linha' arquivo_exemplo.txt`"
+          - "O caractere `^` é um metacaractere que representa o início de uma linha."
+          - "Para encontrar linhas que terminam com 'novamente':"
+          - "`grep 'novamente$' arquivo_exemplo.txt`"
+          - "O caractere `$` representa o fim de uma linha."
+          - "**Mostrando o contexto:**"
+          - "Às vezes, é útil ver algumas linhas antes ou depois do resultado. Podemos usar as flags `-B` (before) e `-A` (after):"
+          - "`grep -A 1 -B 1 'sem' arquivo_exemplo.txt`"
+          - "Este comando mostrará a linha que contém 'sem', mais uma linha antes e uma depois, proporcionando contexto ao resultado."
+        tips:
+          - type: "info"
+            title: "O poder do grep"
+            content: "grep é extremamente útil para buscar informações em logs, arquivos de configuração e saídas de outros comandos. Explore opções como -r (recursivo), -v (inverter busca), -n (número da linha)."
+          - type: "tip"
+            title: "Combinando grep com outros comandos"
+            content: "grep é frequentemente usado com pipes (|) para filtrar a saída de outros comandos. Por exemplo: `ps aux | grep nginx` para encontrar processos do Nginx em execução."
+          - type: "warning"
+            title: "Performance em arquivos grandes"
+            content: "Para buscas em arquivos muito grandes, considere usar ferramentas mais específicas como `zgrep` para arquivos comprimidos ou `ack`/`ag` que são otimizadas para buscas rápidas."
+        validation:
+          - command: "grep -c -i 'linux' arquivo_exemplo.txt"
+            expectedOutput: "3"
+            errorMessage: "O comando grep -c -i não retornou o número esperado de linhas. Verifique se o arquivo foi criado corretamente."
+
+      - name: "Editando Fluxos com sed"
+        description: "Compreenda como o sed (Stream Editor) pode ser usado para transformar texto usando substituições, deleções e outros tipos de manipulações em arquivos ou fluxos de dados."
+        steps:
+          - "O **sed** (Stream Editor) é uma poderosa ferramenta de processamento de texto que permite transformar o conteúdo de um arquivo ou fluxo de dados sem necessidade de abrir um editor interativo. O sed trabalha como um editor não-interativo que processa o texto linha por linha, aplicando as transformações especificadas."
+          - "Vamos continuar usando o arquivo de exemplo que criamos anteriormente para demonstrar as capacidades do sed:"
+          - "**Substituição básica:**"
+          - "A operação mais comum no sed é a substituição de texto usando o comando `s` (substitute):"
+          - "`sed 's/linux/GIRUS/' arquivo_exemplo.txt`"
+          - "Este comando substitui a primeira ocorrência de 'linux' por 'GIRUS' em cada linha do arquivo. Por padrão, o sed não altera o arquivo original, apenas exibe o resultado da transformação."
+          - "Observe que apenas a primeira ocorrência em cada linha é substituída. Se uma linha tiver mais de uma ocorrência de 'linux', apenas a primeira será alterada."
+          - "**Substituição global e insensitiva a maiúsculas/minúsculas:**"
+          - "Para substituir todas as ocorrências em cada linha, usamos a flag `g` (global). Para ignorar maiúsculas/minúsculas, usamos a flag `i` (insensitive):"
+          - "`sed 's/linux/GIRUS/gi' arquivo_exemplo.txt`"
+          - "Este comando substitui todas as ocorrências de 'linux' (independente da capitalização) por 'GIRUS' em todo o arquivo."
+          - "**Editando apenas linhas específicas:**"
+          - "O sed também permite aplicar comandos apenas a linhas que correspondem a um padrão. Por exemplo, vamos deletar todas as linhas que contêm a palavra 'sem':"
+          - "`sed '/sem/d' arquivo_exemplo.txt`"
+          - "Aqui, `/sem/` é um padrão de busca e `d` é o comando de deleção. Este comando remove completamente todas as linhas que contêm 'sem'."
+          - "**Modificando múltiplas linhas:**"
+          - "Podemos combinar várias operações usando múltiplos comandos separados por ponto e vírgula. Por exemplo, vamos substituir 'linux' por 'GIRUS' e 'LINHA' por 'Registro':"
+          - "`sed 's/linux/GIRUS/gi; s/LINHA/Registro/g' arquivo_exemplo.txt`"
+          - "**Editando arquivos no lugar:**"
+          - "Por padrão, o sed não modifica o arquivo original. Para salvar as alterações diretamente no arquivo, usamos a flag `-i` (in-place):"
+          - "`sed -i 's/linux/GIRUS/gi' arquivo_exemplo.txt`"
+          - "Este comando modifica o arquivo original diretamente. Em sistemas BSD como macOS, você precisa fornecer uma extensão de backup: `sed -i '' 's/linux/GIRUS/gi' arquivo_exemplo.txt`"
+          - "**Aplicando condicionais:**"
+          - "Também podemos aplicar comandos apenas a linhas específicas por número. Por exemplo, para substituir 'linux' por 'GIRUS' apenas na primeira linha:"
+          - "`sed '1 s/linux/GIRUS/' arquivo_exemplo.txt`"
+          - "Ou para substituir apenas nas linhas 1 a 3:"
+          - "`sed '1,3 s/linux/GIRUS/g' arquivo_exemplo.txt`"
+        tips:
+          - type: "tip"
+            title: "Sintaxe do sed"
+            content: "A sintaxe básica para substituição é 's/padrão/substituição/flags'. Flags comuns: g (global, todas ocorrências), i (case-insensitive), p (print)."
+          - type: "warning"
+            title: "Backup antes de editar"
+            content: "Ao usar a opção -i para editar arquivos no lugar, é recomendável fazer um backup ou especificar uma extensão de backup (ex: `sed -i.bak`) para evitar perda acidental de dados."
+          - type: "info"
+            title: "Expressões regulares"
+            content: "O sed suporta expressões regulares básicas por padrão. Para usar expressões regulares estendidas (como `+`, `?`, etc.), use a opção -E ou -r dependendo da sua distribuição Linux."
+        validation:
+          - command: "sed 's/linux/GIRUS/gi' arquivo_exemplo.txt | grep -c 'GIRUS'"
+            expectedOutput: "3"
+            errorMessage: "A substituição com sed não parece ter funcionado corretamente. Verifique a sintaxe do comando."
+
+      - name: "Processando Colunas com awk"
+        description: "Explore a linguagem de programação awk para processar e analisar dados estruturados em colunas, aprendendo a extrair, transformar e formatar informações específicas."
+        steps:
+          - "O **awk** é uma linguagem de programação completa, especializada no processamento de dados baseados em texto. Diferente do grep e sed, que funcionam principalmente com linhas inteiras, o awk é particularmente útil para processar dados estruturados em colunas ou campos."
+          - "O nome 'awk' vem das iniciais de seus criadores: Alfred **A**ho, Peter **W**einberger e Brian **K**ernighan. Esta ferramenta tem capacidades avançadas para manipulação de dados, incluindo variáveis, funções, e estruturas condicionais."
+          - "Para demonstrar o poder do awk, vamos criar um arquivo com dados estruturados em colunas:"
+          - |
+            cat > arquivo_colunas.txt << EOL
+            col1 col2 col3
+            val1 val2 val3
+            xyz abc 123
+            EOL
+          - "Este arquivo simula dados tabulares, com três colunas separadas por espaços."
+          - "**Conceito fundamental: campos e registros**"
+          - "No awk, cada linha do arquivo é considerada um 'registro', e cada palavra (ou conjunto de caracteres separados por delimitadores) é um 'campo'. Por padrão, os campos são separados por espaços em branco (espaços ou tabs)."
+          - "- O registro completo é referenciado como `$0`"
+          - "- Os campos individuais são referenciados como `$1`, `$2`, `$3`, etc."
+          - "- `$NF` refere-se ao último campo (NF = Number of Fields)"
+          - "**Imprimindo campos específicos:**"
+          - "O comando mais básico do awk é imprimir um ou mais campos de cada linha:"
+          - "`awk '{print $1}' arquivo_colunas.txt`"
+          - "Este comando imprime apenas o primeiro campo (coluna) de cada linha."
+          - "Para imprimir múltiplos campos com formatação customizada:"
+          - "`awk '{print \"Coluna 1: \" $1, \"Coluna 3: \" $3}' arquivo_colunas.txt`"
+          - "Observe que o awk permite incluir texto literal entre aspas na saída."
+          - "**Imprimindo o último campo:**"
+          - "Para imprimir o último campo de cada linha, independentemente de quantos campos a linha tenha:"
+          - "`awk '{print $NF}' arquivo_colunas.txt`"
+          - "A variável especial `NF` contém o número de campos da linha atual, então `$NF` se refere ao último campo."
+          - "**Aplicando condições:**"
+          - "O awk permite processar apenas linhas que atendam a certas condições. Por exemplo, para imprimir apenas linhas onde o terceiro campo é 'val3':"
+          - "`awk '$3 == \"val3\" {print $0}' arquivo_colunas.txt`"
+          - "Aqui, `$3 == \"val3\"` é uma condição que deve ser satisfeita para que o bloco de código entre chaves seja executado. Note que as aspas dentro do script awk precisam ser escapadas com backslash."
+          - "**Usando separadores diferentes:**"
+          - "Por padrão, o awk considera espaços em branco como separadores de campo. Podemos especificar um separador diferente com a opção -F. Vamos criar um arquivo CSV para demonstrar:"
+          - |
+            cat > arquivo_csv.txt << EOL
+            Nome,Idade,Cidade
+            João,35,São Paulo
+            Maria,28,Rio de Janeiro
+            Pedro,42,Belo Horizonte
+            EOL
+          - "Agora podemos processar este arquivo especificando a vírgula como separador:"
+          - "`awk -F, '{print \"Nome: \" $1, \"Idade: \" $2}' arquivo_csv.txt`"
+          - "**Cálculos e variáveis:**"
+          - "O awk suporta operações matemáticas e variáveis. Por exemplo, para calcular a média de idade no nosso arquivo CSV:"
+          - "`awk -F, 'NR>1 {sum+=$2; count++} END {print \"Média de idade: \" sum/count}' arquivo_csv.txt`"
+          - "Este comando mais complexo:"
+          - "1. Usa `NR>1` para pular o cabeçalho (NR = Number of Record, o número da linha atual)"
+          - "2. Para cada linha processada, adiciona o valor do segundo campo (`$2`, a idade) à variável `sum` e incrementa `count`"
+          - "3. Quando o processamento termina (bloco `END`), calcula e imprime a média (sum/count)"
+        tips:
+          - type: "info"
+            title: "awk para dados tabulares"
+            content: "awk é poderoso para processar arquivos CSV ou qualquer dado delimitado por espaços/tabs. Ele trata cada linha como um registro e cada palavra como um campo ($1, $2, ... $NF)."
+          - type: "tip"
+            title: "Blocos especiais BEGIN e END"
+            content: "O awk permite definir blocos de código para serem executados antes de processar qualquer linha (BEGIN) e após processar todas as linhas (END), útil para inicializar variáveis ou imprimir resultados finais."
+          - type: "warning"
+            title: "Performance em grandes datasets"
+            content: "Para processamento de grandes volumes de dados, considere ferramentas mais especializadas como pandas (Python) ou utilizar o GNU awk (gawk) que possui extensões que podem melhorar a performance."
+        validation:
+          - command: "awk '{print $1}' arquivo_colunas.txt | head -n 1"
+            expectedOutput: "col1"
+            errorMessage: "O awk não parece estar imprimindo a primeira coluna corretamente."
+          - command: "awk -F, 'NR>1 {sum+=$2} END {print sum}' arquivo_csv.txt"
+            expectedOutput: "105"
+            errorMessage: "A soma das idades no arquivo CSV não está correta. Verifique se o arquivo foi criado adequadamente." 

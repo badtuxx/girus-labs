@@ -1,0 +1,134 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: aws-s3-storage-lab
+  namespace: girus
+  labels:
+    app: girus-lab-template
+data:
+  lab.yaml: |
+    name: aws-s3-storage
+    title: "AWS S3: Armazenamento de Objetos na Nuvem"
+    description: "Explore o Amazon S3 (Simple Storage Service), aprenda a criar buckets, gerenciar objetos, configurar permissões e utilizar recursos avançados"
+    duration: 20m
+    timerEnabled: true
+    maxDuration: 20m
+    image: "linuxtips/girus-localstack:0.1"
+    privileged: true
+    type: "aws"
+    entrypoint: "/entrypoint.sh"
+    tasks:
+      - name: "Criando e Gerenciando Buckets S3"
+        description: "Aprenda a criar, listar e remover buckets S3"
+        steps:
+          - "Liste os buckets existentes (deve estar vazio inicialmente):"
+          - "`aws s3 ls`"
+          - "Crie seu primeiro bucket S3:"
+          - "`aws s3 mb s3://meu-primeiro-bucket`"
+          - "Crie um segundo bucket com um nome diferente:"
+          - "`aws s3 mb s3://meu-segundo-bucket`"
+          - "Liste novamente os buckets para ver os que foram criados:"
+          - "`aws s3 ls`"
+          - "Verifique as propriedades de um bucket específico:"
+          - "`aws s3api get-bucket-location --bucket meu-primeiro-bucket`"
+        tips:
+          - type: "info"
+            title: "Nomes de buckets S3"
+            content: "Em um ambiente AWS real, os nomes de buckets S3 devem ser globalmente únicos. No LocalStack, esta restrição não existe, mas é uma boa prática seguir as convenções de nomenclatura."
+          - type: "warning"
+            title: "Regiões S3"
+            content: "Por padrão, os buckets são criados na região us-east-1. Em um ambiente AWS real, você pode especificar diferentes regiões."
+        validation:
+          - command: "aws s3 ls | grep -c bucket | grep -q [2-9] && echo 'success' || echo 'error'"
+            expectedOutput: "success"
+            errorMessage: "Você deve ter pelo menos 2 buckets criados. Verifique se criou ambos os buckets corretamente."
+      
+      - name: "Gerenciando Objetos no S3"
+        description: "Aprenda a fazer upload, download e listar objetos em um bucket S3"
+        steps:
+          - "Crie um arquivo de teste local:"
+          - "`echo 'Este é um arquivo de teste para o S3' > arquivo-teste.txt`"
+          - "Faça upload do arquivo para o primeiro bucket:"
+          - "`aws s3 cp arquivo-teste.txt s3://meu-primeiro-bucket/`"
+          - "Liste os objetos no bucket:"
+          - "`aws s3 ls s3://meu-primeiro-bucket/`"
+          - "Crie um arquivo maior com múltiplas linhas:"
+          - "`cat > dados.txt << EOL\nLinha 1: Dados de teste\nLinha 2: Mais informações\nLinha 3: Conteúdo final\nEOL`"
+          - "Faça upload do segundo arquivo:"
+          - "`aws s3 cp dados.txt s3://meu-primeiro-bucket/pasta-dados/dados.txt`"
+          - "Liste recursivamente todos os objetos, incluindo em pastas:"
+          - "`aws s3 ls --recursive s3://meu-primeiro-bucket/`"
+          - "Baixe um arquivo do S3 para uma nova localização:"
+          - "`aws s3 cp s3://meu-primeiro-bucket/pasta-dados/dados.txt dados-baixados.txt`"
+          - "Confirme que o conteúdo está correto:"
+          - "`cat dados-baixados.txt`"
+        tips:
+          - type: "info"
+            title: "Organizando dados no S3"
+            content: "O S3 é um armazenamento de objetos e não um sistema de arquivos tradicional. As 'pastas' são na verdade apenas prefixos nos nomes dos objetos."
+          - type: "tip"
+            title: "Sincronização de diretórios"
+            content: "Use 'aws s3 sync' para sincronizar diretórios inteiros com o S3."
+        validation:
+          - command: "aws s3 ls --recursive s3://meu-primeiro-bucket/ | wc -l | grep -q [2-9] && echo 'success' || echo 'error'"
+            expectedOutput: "success"
+            errorMessage: "Você deve ter feito upload de pelo menos 2 arquivos para o bucket. Verifique se todos os uploads foram concluídos."
+      
+      - name: "Políticas e Permissões do S3"
+        description: "Configure políticas de acesso para controlar quem pode acessar seus objetos S3"
+        steps:
+          - "Crie um arquivo de política para o bucket:"
+          - "`cat > bucket-policy.json << EOL\n{\n  \"Version\": \"2012-10-17\",\n  \"Statement\": [\n    {\n      \"Effect\": \"Allow\",\n      \"Principal\": \"*\",\n      \"Action\": [\"s3:GetObject\"],\n      \"Resource\": \"arn:aws:s3:::meu-segundo-bucket/*\"\n    }\n  ]\n}\nEOL`"
+          - "Visualize a política criada:"
+          - "`cat bucket-policy.json`"
+          - "Aplique a política ao bucket:"
+          - "`aws s3api put-bucket-policy --bucket meu-segundo-bucket --policy file://bucket-policy.json`"
+          - "Verifique se a política foi aplicada:"
+          - "`aws s3api get-bucket-policy --bucket meu-segundo-bucket`"
+          - "Faça upload de um arquivo para o bucket público:"
+          - "`echo 'Este arquivo pode ser acessado publicamente' > arquivo-publico.txt`"
+          - "`aws s3 cp arquivo-publico.txt s3://meu-segundo-bucket/`"
+          - "Teste o acesso ao arquivo via URL (em um ambiente real AWS):"
+          - "`echo 'No LocalStack, use: curl http://localhost:4566/meu-segundo-bucket/arquivo-publico.txt'`"
+        tips:
+          - type: "warning"
+            title: "Segurança S3"
+            content: "Na AWS real, tenha cuidado ao tornar buckets ou objetos públicos. Muitas violações de dados ocorrem devido a configurações incorretas de acesso S3."
+          - type: "info"
+            title: "Políticas vs ACLs"
+            content: "O S3 suporta tanto políticas de bucket quanto Listas de Controle de Acesso (ACLs). As políticas de bucket são recomendadas para a maioria dos casos de uso."
+        validation:
+          - command: "aws s3api get-bucket-policy --bucket meu-segundo-bucket > /dev/null 2>&1 && echo 'success' || echo 'error'"
+            expectedOutput: "success"
+            errorMessage: "A política de bucket não foi aplicada corretamente ao meu-segundo-bucket."
+      
+      - name: "Recursos Avançados do S3"
+        description: "Explore recursos avançados como versionamento, ciclo de vida e criptografia"
+        steps:
+          - "Habilite o versionamento em um bucket:"
+          - "`aws s3api put-bucket-versioning --bucket meu-primeiro-bucket --versioning-configuration Status=Enabled`"
+          - "Verifique a configuração de versionamento:"
+          - "`aws s3api get-bucket-versioning --bucket meu-primeiro-bucket`"
+          - "Modifique e faça upload do mesmo arquivo várias vezes para testar o versionamento:"
+          - "`echo 'Versão 1 do arquivo' > arquivo-versionado.txt`"
+          - "`aws s3 cp arquivo-versionado.txt s3://meu-primeiro-bucket/`"
+          - "`echo 'Versão 2 do arquivo' > arquivo-versionado.txt`"
+          - "`aws s3 cp arquivo-versionado.txt s3://meu-primeiro-bucket/`"
+          - "`echo 'Versão 3 do arquivo - final' > arquivo-versionado.txt`"
+          - "`aws s3 cp arquivo-versionado.txt s3://meu-primeiro-bucket/`"
+          - "Liste as versões do objeto:"
+          - "`aws s3api list-object-versions --bucket meu-primeiro-bucket --prefix arquivo-versionado.txt`"
+          - "Configure uma regra de ciclo de vida para expirar objetos antigos:"
+          - "`cat > lifecycle-config.json << EOL\n{\n  \"Rules\": [\n    {\n      \"ID\": \"ExpireOldVersions\",\n      \"Status\": \"Enabled\",\n      \"Prefix\": \"\",\n      \"NoncurrentVersionExpiration\": {\n        \"NoncurrentDays\": 30\n      }\n    }\n  ]\n}\nEOL`"
+          - "`aws s3api put-bucket-lifecycle-configuration --bucket meu-primeiro-bucket --lifecycle-configuration file://lifecycle-config.json`"
+        tips:
+          - type: "info"
+            title: "Versionamento S3"
+            content: "O versionamento do S3 é uma excelente forma de proteger contra exclusões acidentais e modificações indesejadas de objetos."
+          - type: "tip"
+            title: "Otimizando custos"
+            content: "Na AWS real, use configurações de ciclo de vida para mover dados acessados com menos frequência para classes de armazenamento mais baratas como S3 Standard-IA ou Glacier."
+        validation:
+          - command: "aws s3api get-bucket-versioning --bucket meu-primeiro-bucket --query 'Status' | grep -q Enabled && echo 'success' || echo 'error'"
+            expectedOutput: "success"
+            errorMessage: "O versionamento não foi habilitado corretamente no bucket."
