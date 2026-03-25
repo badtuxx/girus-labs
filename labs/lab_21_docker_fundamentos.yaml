@@ -210,7 +210,7 @@ data:
             title: "Imagens Base Otimizadas"
             content: "Variantes Alpine são muito menores que as imagens base padrão. Por exemplo, 'node:alpine' tem cerca de 50MB, enquanto 'node' (baseada em Debian) tem mais de 300MB. Imagens menores são mais rápidas para baixar e mais seguras por terem menos pacotes instalados."
         validation:
-          - command: "docker images alpine --format 'found' 2>/dev/null || echo 'not found'"
+          - command: "docker images | grep -q alpine && echo 'found' || echo 'not found'"
             expectedOutput: "found"
             errorMessage: "A imagem Alpine não foi baixada. Execute o comando 'docker pull alpine' para baixá-la."
           - command: "docker images | wc -l"
