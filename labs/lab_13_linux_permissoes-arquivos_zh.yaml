@@ -1,0 +1,117 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: linux-permissoes-arquivos-zh-lab
+  namespace: girus
+  labels:
+    app: girus-lab-template
+data:
+  lab.yaml: |
+    name: linux-permissoes-arquivos-zh
+    title: "Linux 文件权限（中文版）"
+    description: "学习查看和修改 Linux 中文件与目录的权限"
+    duration: 15m
+    image: "girus-devops-zh:0.1"
+    tasks:
+      - name: "理解基础权限"
+        description: "学习查看和解读文件与目录的权限"
+        steps:
+          - "创建一个用于练习的目录："
+          - "`mkdir ~/permissoes`"
+          - "进入该目录："
+          - "`cd ~/permissoes`"
+          - "创建测试文件："
+          - "`touch arquivo1.txt arquivo2.txt`"
+          - "查看当前权限："
+          - "`ls -la`"
+          - "观察权限的格式 - **[类型][所有者][组][其他人]**"
+          - "示例 - **-rw-r--r--** 表示普通文件，所有者可读可写，组和其他人只能读"
+          - "创建一个简单的脚本："
+          - "`echo '#!/bin/bash' > script.sh`"
+          - "`echo 'echo \"Hello, World!\"' >> script.sh`"
+          - "尝试执行这个脚本："
+          - "`./script.sh`"
+          - "你会看到一条权限被拒绝（Permission denied）的消息"
+        tips:
+          - type: "info"
+            title: "权限格式"
+            content: "权限由 10 个字符表示 - 第一个字符表示类型（**-** 为文件，**d** 为目录），后面是三组 **rwx**（read、write、execute），分别对应所有者、组和其他人。"
+          - type: "tip"
+            title: "模式位的含义"
+            content: "**r**（4）- 读权限，**w**（2）- 写权限，**x**（1）- 执行权限。数值相加即得到八进制权限值。"
+        validation:
+          - command: "test -f ~/permissoes/script.sh && echo 'ok'"
+            expectedOutput: "ok"
+            errorMessage: "文件 script.sh 未正确创建"
+
+      - name: "修改权限"
+        description: "学习使用 chmod 修改文件权限"
+        steps:
+          - "给刚才创建的脚本添加执行权限："
+          - "`chmod +x script.sh`"
+          - "查看新权限："
+          - "`ls -la script.sh`"
+          - "现在执行脚本："
+          - "`./script.sh`"
+          - "用八进制记法设置权限："
+          - "`chmod 644 arquivo1.txt`"
+          - "`chmod 640 arquivo2.txt`"
+          - "检查修改后的权限："
+          - "`ls -la arquivo*.txt`"
+          - "使用递归 chmod 批量修改权限："
+          - "`mkdir -p subdir/subsubdir`"
+          - "`touch subdir/file1 subdir/subsubdir/file2`"
+          - "`chmod -R 750 subdir`"
+          - "验证递归设置的权限："
+          - "`ls -la subdir`"
+          - "`ls -la subdir/subsubdir`"
+        tips:
+          - type: "info"
+            title: "符号记法 vs 八进制记法"
+            content: "可以使用符号记法（chmod u+x）或八进制记法（chmod 755）。八进制中每个数字依次表示所有者、组和其他人的权限。"
+          - type: "warning"
+            title: "权限与安全"
+            content: "过于宽松的权限（如 777）存在安全风险。请始终使用满足需求的最小权限。"
+        validation:
+          - command: "test -x ~/permissoes/script.sh && echo 'ok'"
+            expectedOutput: "ok"
+            errorMessage: "脚本没有执行权限"
+          - command: "stat -c %a ~/permissoes/arquivo1.txt"
+            expectedOutput: "644"
+            errorMessage: "arquivo1.txt 权限不正确（应为 644）"
+
+      - name: "文件所有者与 umask"
+        description: "学习修改文件所有者以及配置 umask"
+        steps:
+          - "查看文件的当前所有者："
+          - "`ls -la`"
+          - "查看当前 umask："
+          - "`umask`"
+          - "用默认 umask 创建一个新文件："
+          - "`touch arquivo_umask_padrao.txt`"
+          - "`ls -la arquivo_umask_padrao.txt`"
+          - "临时把 umask 改为 027："
+          - "`umask 027`"
+          - "用新的 umask 再创建一个文件："
+          - "`touch arquivo_umask_027.txt`"
+          - "`ls -la arquivo_umask_027.txt`"
+          - "恢复默认 umask（通常是 022）："
+          - "`umask 022`"
+          - "如果你有 sudo 权限，修改一个文件的所有者："
+          - "`sudo chown root:root arquivo1.txt`"
+          - "验证所有者的变化："
+          - "`ls -la arquivo1.txt`"
+        tips:
+          - type: "info"
+            title: "umask 详解"
+            content: "umask 决定创建新文件和新目录时默认移除哪些权限。umask 为 022 表示移除组和其他人的写权限，最终文件权限为 644、目录权限为 755。"
+          - type: "tip"
+            title: "默认权限"
+            content: "目录的默认权限基准是 777，文件是 666。umask 的值就是从这些基准值中减去的部分。"
+        validation:
+          - command: "umask"
+            expectedOutput: "0022"
+            errorMessage: "umask 未恢复为默认值"
+          - command: "stat -c %a ~/permissoes/arquivo_umask_027.txt 2>/dev/null || echo 'ausente'"
+            expectedOutput: "640"
+            errorMessage: "umask 027 创建的文件权限不符合预期，或未创建"

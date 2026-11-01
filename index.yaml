@@ -206,3 +206,27 @@ labs:
     duration: 40m
     tags: [terraform, provisioners, modules, devops]
     url: https://raw.githubusercontent.com/badtuxx/girus-labs/main/labs/lab_37_terraform_provisioners_e_modulos.yaml
+
+    
+  - id: linux-comandos-basicos-zh
+    title: Linux 基础：目录导航与核心命令（中文版）
+    description: 掌握 Linux 基础命令与核心概念：文件系统导航、文件操作、进程管理与基础权限（中文版，命令与术语保留英文）。
+    version: 1.0.0
+    duration: 25m
+    tags: [linux, basics, commands, terminal, chinese]
+    url: https://raw.githubusercontent.com/badtuxx/girus-labs/main/labs/lab_11_linux_comandos-basicos_zh.yaml
+  - id: linux-permissoes-arquivos-zh
+    title: Linux 文件权限（中文版）
+    description: 学习查看和修改 Linux 中文件与目录的权限：chmod、chown、umask（中文版，命令与术语保留英文）。
+    version: 1.0.0
+    duration: 15m
+    tags: [linux, permissions, chmod, umask, chinese]
+    url: https://raw.githubusercontent.com/badtuxx/girus-labs/main/labs/lab_13_linux_permissoes-arquivos_zh.yaml
+  - id: docker-fundamentos-zh
+    title: Docker 入门（中文版）
+    description: 学习 Docker 基础：镜像与容器、常用命令、数据卷入门（中文版，命令与术语保留英文）。
+    version: 1.1.0
+    duration: 20m
+    tags: [docker, fundamentals, containers, chinese]
+    url: https://raw.githubusercontent.com/badtuxx/girus-labs/main/labs/lab_21_docker_fundamentos_zh.yaml
+
